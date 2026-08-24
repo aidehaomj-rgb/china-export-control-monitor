@@ -86,17 +86,30 @@ button { -webkit-tap-highlight-color: transparent; }
 .node-a { left: 9%; top: 34%; }.node-b { right: 8%; top: 23%; animation-delay: -1s; }.node-c { right: 17%; bottom: 8%; animation-delay: -2s; }.node-d { left: 24%; bottom: 3%; animation-delay: -3s; }
 
 .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 18px; background: rgba(255, 255, 255, .88); box-shadow: var(--shadow); overflow: hidden; }
-.stat-card { min-height: 148px; display: grid; grid-template-columns: 34px 1fr; padding: 24px 26px; border-right: 1px solid var(--line); transition: .25s ease; }
+.stat-card { position: relative; isolation: isolate; min-height: 148px; display: grid; grid-template-columns: 34px 1fr; padding: 24px 26px; border-right: 1px solid var(--line); overflow: hidden; transition: color .32s ease, box-shadow .32s ease; }
+.stat-card::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(135deg, #09b8cc 0%, #277fe9 64%, #615ee6 100%); transform: scaleX(0); transform-origin: left center; transition: transform .48s cubic-bezier(.2, .78, .2, 1); }
+.stat-card::after { content: ""; position: absolute; z-index: -1; right: -58px; top: -72px; width: 175px; height: 175px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 50%; opacity: 0; transform: scale(.55); transition: opacity .28s ease .08s, transform .55s cubic-bezier(.2, .78, .2, 1) .04s; }
 .stat-card:last-child { border-right: 0; }
-.stat-card:hover { background: #fbfdfd; }
+.stat-card:hover { color: white; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18), 0 18px 36px rgba(34, 110, 174, .2); }
+.stat-card:hover::before { transform: scaleX(1); }
+.stat-card:hover::after { opacity: 1; transform: scale(1); }
 .stat-card > span { color: #b3bdc3; font: 8px monospace; }
 .stat-card strong, .stat-card b, .stat-card small { display: block; }
 .stat-card strong { color: #11191d; font: 600 38px/1 monospace; letter-spacing: -.05em; }
 .stat-card b { margin-top: 13px; color: #344149; font-size: 12px; }
 .stat-card small { margin-top: 5px; color: #a0a9ae; font: 8px monospace; text-transform: uppercase; }
+.stat-card > span, .stat-card strong, .stat-card b, .stat-card small { transition: color .3s ease; }
+.stat-card:hover > span, .stat-card:hover strong, .stat-card:hover b { color: white; }
+.stat-card:hover small { color: rgba(255, 255, 255, .7); }
 
 .home-grid { display: grid; grid-template-columns: 1.18fr .82fr; gap: 18px; padding: 18px 0 110px; }
-.country-panel, .signal-panel { min-height: 420px; padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255, 255, 255, .92); box-shadow: 0 14px 46px rgba(37, 54, 68, .055); }
+.country-panel, .signal-panel { position: relative; isolation: isolate; min-height: 420px; padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255, 255, 255, .92); box-shadow: 0 14px 46px rgba(37, 54, 68, .055); overflow: hidden; transition: transform .38s cubic-bezier(.2, .78, .2, 1), border-color .3s ease, box-shadow .38s ease, background .3s ease; }
+.country-panel > *, .signal-panel > * { position: relative; z-index: 1; }
+.country-panel::before, .signal-panel::before { content: ""; position: absolute; left: 0; right: 0; top: 0; z-index: 2; height: 3px; background: linear-gradient(90deg, #07b4c6, #3d77ed, #7d6be7); transform: scaleX(0); transform-origin: left; transition: transform .52s cubic-bezier(.2, .78, .2, 1); }
+.country-panel::after, .signal-panel::after { content: ""; position: absolute; right: -110px; bottom: -135px; z-index: 0; width: 280px; height: 280px; border-radius: 50%; background: radial-gradient(circle, rgba(42, 190, 203, .12), transparent 68%); opacity: 0; transform: scale(.7); transition: opacity .35s ease, transform .55s cubic-bezier(.2, .78, .2, 1); pointer-events: none; }
+.country-panel:hover, .signal-panel:hover { transform: translateY(-5px); border-color: #b9dfe3; background: #fff; box-shadow: 0 28px 65px rgba(37, 77, 95, .12); }
+.country-panel:hover::before, .signal-panel:hover::before { transform: scaleX(1); }
+.country-panel:hover::after, .signal-panel:hover::after { opacity: 1; transform: scale(1); }
 .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; }
 .panel-heading span, .module-hero > div > span, .screening-intro > span, .method-aside > span { color: var(--cyan-dark); font: 8px monospace; letter-spacing: .18em; }
 .panel-heading h2 { margin: 7px 0 0; font-size: 22px; letter-spacing: -.03em; }
