@@ -239,10 +239,6 @@ function HomeDashboard({ onSelect }: { onSelect: (view: View) => void }) {
         <div className="hero-copy">
           <h1>中国出口管制<br /><em>实体与政策情报台</em></h1>
           <p className="hero-slogan"><span>对象识别</span><i /><span>关系穿透</span></p>
-          <div className="hero-actions">
-            <button onClick={() => onSelect("entities")}>进入管制清单 <span>↗</span></button>
-            <button onClick={() => onSelect("timeline")}>查看政策演进</button>
-          </div>
         </div>
         <div className="hero-visual" aria-hidden="true">
           <div className="visual-caption"><span>INTELLIGENCE GRAPH</span><b>04 GEO NODES</b></div>
