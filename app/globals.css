@@ -47,9 +47,8 @@ button { -webkit-tap-highlight-color: transparent; }
 .nav-dropdown { position: absolute; top: calc(100% + 12px); left: 50%; width: 330px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, .98); box-shadow: 0 24px 70px rgba(27, 41, 50, .16); transform: translateX(-50%); animation: dropdownIn .22s ease both; z-index: 42; }
 .nav-dropdown::after { content: ""; position: absolute; left: 0; right: 0; top: -13px; height: 13px; }
 .dropdown-kicker { padding: 4px 7px 11px; color: #98a2a9; font: 8px var(--font-mono); letter-spacing: .16em; }
-.nav-dropdown > button { position: relative; width: 100%; display: grid; grid-template-columns: 30px 1fr 20px; align-items: center; gap: 10px; padding: 13px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; transition: .2s ease; }
+.nav-dropdown > button { position: relative; width: 100%; display: grid; grid-template-columns: 1fr 20px; align-items: center; gap: 12px; padding: 13px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; transition: .2s ease; }
 .nav-dropdown > button:hover { background: #f3f7f8; }
-.nav-dropdown > button > span { color: var(--cyan); font: 9px monospace; }
 .nav-dropdown > button strong, .nav-dropdown > button small { display: block; }
 .nav-dropdown > button strong { font-size: 13px; }
 .nav-dropdown > button small { margin-top: 4px; color: #8a959c; font-size: 10px; }

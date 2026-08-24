@@ -168,9 +168,8 @@ export default function Home() {
                 {openMenu === group.id && (
                   <div className="nav-dropdown" role="menu">
                     <div className="dropdown-kicker">{group.eyebrow}</div>
-                    {group.items.map((item, index) => (
+                    {group.items.map((item) => (
                       <button role="menuitem" key={item.view} onClick={() => selectView(item.view)}>
-                        <span>{String(index + 1).padStart(2, "0")}</span>
                         <div><strong>{item.label}</strong><small>{item.note}</small></div>
                         <b>↗</b>
                       </button>
