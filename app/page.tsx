@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import data from "../public/data/control-entities.json";
 
-type View = "home" | "entities" | "countries" | "notices" | "timeline" | "screening" | "method";
+type View = "home" | "entities" | "notices" | "timeline" | "screening" | "method";
 type MenuId = "entities" | "policy" | "research";
 type Entity = (typeof data.entities)[number];
 
@@ -50,10 +50,9 @@ const menuGroups: Array<{
     id: "entities",
     label: "实体情报",
     eyebrow: "ENTITY INTELLIGENCE",
-    views: ["entities", "countries"],
+    views: ["entities"],
     items: [
       { view: "entities", label: "管制企业清单", note: "153个官方列名实体" },
-      { view: "countries", label: "国家 / 地区分布", note: "对象地域结构与占比" },
     ],
   },
   {
@@ -80,7 +79,6 @@ const menuGroups: Array<{
 
 const viewMeta: Record<Exclude<View, "home">, { kicker: string; title: string; note: string }> = {
   entities: { kicker: "ENTITY REGISTRY", title: "管制企业清单", note: "官方列名直接入库 · 暂未按集团控制关系合并" },
-  countries: { kicker: "GEOGRAPHIC EXPOSURE", title: "国家 / 地区分布", note: "按公告所列对象所属国家或地区统计" },
   notices: { kicker: "OFFICIAL NOTICES", title: "公告库", note: "11批公告 · 商务部官方原文" },
   timeline: { kicker: "POLICY SIGNAL TRACK", title: "政策时间轴", note: "制度落地 · 对象扩围 · 域外约束" },
   screening: { kicker: "CONTINUITY SCREENING", title: "替代进口排查", note: "识别管控后可能延续自中国进口的替代主体" },
@@ -219,7 +217,6 @@ export default function Home() {
                 setType={setType}
               />
             )}
-            {activeView === "countries" && <CountryModule onSelect={selectView} />}
             {activeView === "notices" && <NoticeModule />}
             {activeView === "timeline" && <TimelineModule />}
             {activeView === "screening" && <ScreeningModule onSelect={selectView} />}
@@ -259,7 +256,7 @@ function HomeDashboard({ onSelect }: { onSelect: (view: View) => void }) {
       </section>
 
       <section className="home-grid shell">
-        <CountryPanel onSelect={onSelect} />
+        <CountryPanel />
         <article className="signal-panel">
           <div className="panel-heading"><div><span>LATEST SIGNALS</span><h2>最新政策信号</h2></div><button onClick={() => onSelect("notices")}>全部公告 ↗</button></div>
           <div className="latest-list">
@@ -283,10 +280,10 @@ function StatCard({ value, label, note, index }: { value: string; label: string;
   return <article className="stat-card"><span>{index}</span><div><strong>{value}</strong><b>{label}</b><small>{note}</small></div></article>;
 }
 
-function CountryPanel({ onSelect }: { onSelect: (view: View) => void }) {
+function CountryPanel() {
   return (
     <article className="country-panel">
-      <div className="panel-heading"><div><span>GEOGRAPHIC EXPOSURE</span><h2>国家 / 地区分布</h2></div><button onClick={() => onSelect("countries")}>查看详情 ↗</button></div>
+      <div className="panel-heading"><div><span>GEOGRAPHIC EXPOSURE</span><h2>国家 / 地区分布</h2></div></div>
       <div className="country-visual">
         <div className="donut-shell" aria-hidden="true">
           <div className="donut-halo" />
@@ -328,10 +325,6 @@ function EntityRegistry(props: {
       <div className="pager"><span>第 {currentPage} / {pages} 页</span><div><button disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>← 上一页</button><button disabled={page >= pages} onClick={() => setPage((value) => value + 1)}>下一页 →</button></div></div>
     </div>
   </div>;
-}
-
-function CountryModule({ onSelect }: { onSelect: (view: View) => void }) {
-  return <div className="module-panel country-module"><CountryPanel onSelect={onSelect} /><div className="country-cards">{regionData.map((item, index) => <article key={item.name} className={`reveal ${item.tone}`} style={delay(index)}><span className={`region-dot ${item.tone}`} /><small>REGION {String(index + 1).padStart(2, "0")}</small><h3>{item.name}</h3><strong>{item.count}</strong><p>占全部列名实体的 {item.share.toFixed(1)}%</p><div><i className={item.tone} style={{ width: `${item.share}%` }} /></div></article>)}</div></div>;
 }
 
 function NoticeModule() {
