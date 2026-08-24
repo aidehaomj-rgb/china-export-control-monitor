@@ -218,15 +218,6 @@ function HomeDashboard({ onSelect }: { onSelect: (view: View) => void }) {
           <h1>中国出口管制<br /><em>实体与政策情报台</em></h1>
           <p className="hero-slogan"><span>对象识别</span><i /><span>关系穿透</span></p>
         </div>
-        <div className="hero-visual" aria-hidden="true">
-          <div className="visual-caption"><span>INTELLIGENCE GRAPH</span><b>04 GEO NODES</b></div>
-          <div className="graph-field">
-            <i className="graph-ring ring-a" /><i className="graph-ring ring-b" /><i className="graph-ring ring-c" />
-            <span className="graph-line line-a" /><span className="graph-line line-b" /><span className="graph-line line-c" />
-            <b className="graph-node node-a">US</b><b className="graph-node node-b">JP</b><b className="graph-node node-c">EU</b><b className="graph-node node-d">TW</b>
-            <div className="graph-core"><i /><strong>CN</strong><span>CONTROL<br />SIGNAL</span></div>
-          </div>
-        </div>
       </section>
 
       <section className="stats-strip shell" aria-label="整体数据统计">
