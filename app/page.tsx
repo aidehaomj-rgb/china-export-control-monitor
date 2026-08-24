@@ -278,14 +278,6 @@ function HomeDashboard({ onSelect }: { onSelect: (view: View) => void }) {
         </article>
       </section>
 
-      <section className="module-gateway shell">
-        <div className="section-title"><span>INTELLIGENCE MODULES</span><h2>按研究任务进入模块</h2><p>首页之后的功能按实体、政策与穿透研判分组，顶部导航可随时切换。</p></div>
-        <div className="gateway-grid">
-          <GatewayCard index="01" title="实体情报" note="确认谁被管控，以及对象地域与类型结构。" tone="cyan" items={[{ label: "管制企业清单", view: "entities" }, { label: "国家 / 地区分布", view: "countries" }]} onSelect={onSelect} />
-          <GatewayCard index="02" title="政策追踪" note="关联官方公告，观察名单机制的扩围节奏。" tone="blue" items={[{ label: "公告库", view: "notices" }, { label: "政策时间轴", view: "timeline" }]} onSelect={onSelect} />
-          <GatewayCard index="03" title="穿透研判" note="沿集团控制与交易路径识别替代进口线索。" tone="violet" items={[{ label: "替代进口排查", view: "screening" }, { label: "关联穿透方法", view: "method" }]} onSelect={onSelect} />
-        </div>
-      </section>
     </>
   );
 }
@@ -313,10 +305,6 @@ function CountryPanel({ onSelect }: { onSelect: (view: View) => void }) {
       </div>
     </article>
   );
-}
-
-function GatewayCard({ index, title, note, tone, items, onSelect }: { index: string; title: string; note: string; tone: string; items: Array<{ label: string; view: View }>; onSelect: (view: View) => void }) {
-  return <article className={`gateway-card ${tone}`}><div className="gateway-top"><span>{index}</span><i /></div><h3>{title}</h3><p>{note}</p><div>{items.map((item) => <button key={item.view} onClick={() => onSelect(item.view)}>{item.label}<span>↗</span></button>)}</div></article>;
 }
 
 function EntityRegistry(props: {
