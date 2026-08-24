@@ -335,7 +335,7 @@ function EntityRegistry(props: {
 }
 
 function CountryModule({ onSelect }: { onSelect: (view: View) => void }) {
-  return <div className="module-panel country-module"><CountryPanel onSelect={onSelect} /><div className="country-cards">{regionData.map((item, index) => <article key={item.name} className="reveal" style={delay(index)}><span className={`region-dot ${item.tone}`} /><small>REGION {String(index + 1).padStart(2, "0")}</small><h3>{item.name}</h3><strong>{item.count}</strong><p>占全部列名实体的 {item.share.toFixed(1)}%</p><div><i className={item.tone} style={{ width: `${item.share}%` }} /></div></article>)}</div></div>;
+  return <div className="module-panel country-module"><CountryPanel onSelect={onSelect} /><div className="country-cards">{regionData.map((item, index) => <article key={item.name} className={`reveal ${item.tone}`} style={delay(index)}><span className={`region-dot ${item.tone}`} /><small>REGION {String(index + 1).padStart(2, "0")}</small><h3>{item.name}</h3><strong>{item.count}</strong><p>占全部列名实体的 {item.share.toFixed(1)}%</p><div><i className={item.tone} style={{ width: `${item.share}%` }} /></div></article>)}</div></div>;
 }
 
 function NoticeModule() {
@@ -343,7 +343,7 @@ function NoticeModule() {
 }
 
 function TimelineModule() {
-  return <div className="module-panel"><div className="timeline-summary"><div><span>政策跨度</span><b>2025—2026</b></div><i /><p>2025年名单机制密集落地，2026年对象范围扩展至日本和欧盟，并强化对原产中国两用物项境外转移的约束。</p></div><div className="timeline-track"><div className="track-line"><i /></div>{notices.map((notice, index) => <article className={`timeline-event reveal ${index === 0 ? "latest" : ""}`} style={delay(index)} key={notice.notice}><div className="timeline-date"><b>{notice.date.slice(5).replace("-", ".")}</b><span>{notice.date.slice(0, 4)}</span></div><div className={`timeline-node ${regionTone[notice.region]}`}><i /><em /></div><div className="timeline-card"><div className="timeline-card-top"><span className={`tag ${regionTone[notice.region]}`}>{notice.region}</span><small>+{notice.count} ENTITIES</small>{index === 0 && <b>最新</b>}</div><h3>{notice.notice}</h3><p>{index === data.notices.length - 1 ? "出口管制管控名单进入实体化实施阶段。" : "管控范围持续扩围，名单主体及替代交易路径成为合规核查重点。"}</p><a href={notice.url} target="_blank" rel="noreferrer">查看政策原文 <span>↗</span></a></div></article>)}</div></div>;
+  return <div className="module-panel"><div className="timeline-summary"><div><span>政策跨度</span><b>2025—2026</b></div><i /><p>2025年名单机制密集落地，2026年对象范围扩展至日本和欧盟，并强化对原产中国两用物项境外转移的约束。</p></div><div className="timeline-track"><div className="track-line"><i /></div>{notices.map((notice, index) => <article className={`timeline-event reveal ${regionTone[notice.region]} ${index === 0 ? "latest" : ""}`} style={delay(index)} key={notice.notice}><div className="timeline-date"><b>{notice.date.slice(5).replace("-", ".")}</b><span>{notice.date.slice(0, 4)}</span></div><div className="timeline-node"><i /><em /></div><div className="timeline-card"><div className="timeline-card-top"><span className={`tag ${regionTone[notice.region]}`}>{notice.region}</span><small>+{notice.count} ENTITIES</small>{index === 0 && <b>最新</b>}</div><h3>{notice.notice}</h3><p>{index === data.notices.length - 1 ? "出口管制管控名单进入实体化实施阶段。" : "管控范围持续扩围，名单主体及替代交易路径成为合规核查重点。"}</p><a href={notice.url} target="_blank" rel="noreferrer">查看政策原文 <span>↗</span></a></div></article>)}</div></div>;
 }
 
 function ScreeningModule({ onSelect }: { onSelect: (view: View) => void }) {
