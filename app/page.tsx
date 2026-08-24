@@ -229,12 +229,6 @@ export default function Home() {
         </>
       )}
 
-      <footer>
-        <div className="shell footer-inner">
-          <div><span className="brand-mark small">控</span><strong>战略贸易管制监测台</strong></div>
-          <p>资料来源：中华人民共和国商务部 · 仅作政策与贸易情报研究，不构成法律意见</p>
-        </div>
-      </footer>
     </main>
   );
 }
@@ -244,7 +238,6 @@ function HomeDashboard({ onSelect }: { onSelect: (view: View) => void }) {
     <>
       <section className="home-hero shell">
         <div className="hero-copy">
-          <div className="eyebrow"><span className="live-dot" /> EXPORT CONTROL INTELLIGENCE <b>中国政策专题</b></div>
           <h1>中国出口管制<br /><em>实体与政策情报台</em></h1>
           <p>把官方名单、政策公告与潜在替代贸易路径放在同一张情报底图上，支持从对象识别走向关系穿透。</p>
           <div className="hero-actions">
