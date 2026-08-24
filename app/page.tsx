@@ -7,6 +7,9 @@ import data from "../public/data/control-entities.json";
 type View = "home" | "entities" | "notices" | "timeline" | "screening" | "method";
 type MenuId = "entities" | "policy" | "research";
 type Entity = (typeof data.entities)[number];
+type ScreeningNode = { stage: string; name: string; note: string; tone: "source" | "subject" | "alternate" | "destination"; connection?: "verified" | "pending" };
+type ScreeningEvidence = { category: string; title: string; detail: string; source?: string; url?: string };
+type ScreeningCase = { entityId: number; finding: string; confidence: string; summary: string; checks: string[]; nodes: ScreeningNode[]; evidence: ScreeningEvidence[]; gaps: string[] };
 
 const regionTone: Record<string, string> = {
   美国: "red",
@@ -30,6 +33,64 @@ const regionData = ["美国", "日本", "欧盟", "台湾地区"].map((name) => 
 const notices = [...data.notices].reverse();
 const companyCount = data.entities.filter((item) => item.entityType === "企业").length;
 const institutionCount = data.entities.length - companyCount;
+const screeningEntities = data.entities.slice(0, 5);
+const screeningCases: ScreeningCase[] = [
+  {
+    entityId: 1,
+    finding: "暂未发现替代供应链",
+    confidence: "—",
+    summary: "当前证据库未形成通用动力通过其他主体继续自中国进口的可报告链路。",
+    checks: ["General Dynamics Corporation / Company 法定名称", "Gulfstream 与 Mission Systems 核心业务单元", "管控后中国原产记录与全球贸易结果"],
+    nodes: [], evidence: [],
+    gaps: ["其他业务单元与子公司别名补查", "管控前自中国进口基线", "集团内部采购与领料记录"],
+  },
+  {
+    entityId: 2,
+    finding: "暂未发现替代供应链",
+    confidence: "—",
+    summary: "发现一条台湾供应商向列名主体交付军用方舱发电机/安装套件的单腿记录，但没有证据证明货物来自中国大陆或经替代主体转入。",
+    checks: ["L3Harris Technologies 精确采购商名称", "Aerojet Rocketdyne 核心子公司", "中国原产条件及台湾 Champion Auto 单腿记录"],
+    nodes: [], evidence: [],
+    gaps: ["Champion Auto 上游零部件原产地", "提单、批号与生产商字段", "中国大陆供应商或中转主体证据"],
+  },
+  {
+    entityId: 3,
+    finding: "暂未发现替代供应链",
+    confidence: "—",
+    summary: "当前口径下未检出英特磊列名主体或集团别名的可用贸易记录。",
+    checks: ["Intelligent Epitaxy Technology 精确名称", "IntelliEPI Inc. 集团别名", "全球来源与中国原产两组口径"],
+    nodes: [], evidence: [],
+    gaps: ["地址、曾用名与报关名称映射", "外延片及关键原料商品词补查", "管控前进口基线"],
+  },
+  {
+    entityId: 4,
+    finding: "暂未发现替代供应链",
+    confidence: "—",
+    summary: "未检出 Clear Align LLC 的贸易记录；公开资料称其制造体系在美国垂直整合，现阶段缺少境外替代进口指向。",
+    checks: ["Clear Align LLC 精确名称全球检索", "中国原产条件", "公开制造布局与集团/子公司关系"],
+    nodes: [], evidence: [],
+    gaps: ["采购订单与供应商名录", "光学材料上游原产地", "关联公司报关别名"],
+  },
+  {
+    entityId: 5,
+    finding: "集团承接风险线索",
+    confidence: "B级 · 60分",
+    summary: "波音防务精确名未检出记录，但其集团母体在管控后持续自中国进口航空材料与部件；集团内部最终流向尚未闭合。",
+    checks: ["Boeing Defense, Space & Security 精确名称", "The Boeing Company 集团进口主体", "300条原始结果全页读取与精确去重", "商品、防务关键词与最终用途反证核查"],
+    nodes: [
+      { stage: "中国供应端", name: "航空材料与部件供应商", note: "Novelis镇江、中化蓝天、烟台金泰、AVIC等", tone: "source", connection: "verified" },
+      { stage: "集团进口主体", name: "The Boeing Company", note: "243条可见字段唯一记录；美国进口主体", tone: "alternate", connection: "pending" },
+      { stage: "列名业务单元", name: "Boeing Defense, Space & Security", note: "集团关系已核实；内部货物流向待核", tone: "destination" },
+    ],
+    evidence: [
+      { category: "关系证据", title: "BDS为波音三大业务单元之一", detail: "波音官网和2025年10-K均将Defense, Space & Security列为The Boeing Company的业务单元/报告分部。", source: "Boeing 官方公司页", url: "https://www.boeing.com/company" },
+      { category: "交易证据", title: "管控后集团母体继续接收中国原产货物", detail: "易迅近一年口径返回300条原始结果，逐页读取后按可见字段精确去重为243条；主要包括铝板、PVF膜、商用飞机部件及锻件。", source: "易迅数据 · 美国进口/环球提单" },
+      { category: "供应主体", title: "多家中国境内供应节点持续出现", detail: "可见供应商包括Novelis Aluminum (Zhenjiang)、Sinochem Lantian Fluoro Materials、Yantai Jintai、Boeing Tianjin Composites等。", source: "易迅数据 · 2025-08-24至2026-08-19" },
+      { category: "证据边界", title: "尚无防务最终用途闭环", detail: "243条唯一记录中未命中BDS或具体防务型号关键词；部分货描明确为商用飞机，波音中国资料亦将多项在华供应说明为商用飞机供应链。", source: "Boeing 中国背景资料", url: "https://www.boeing.com/content/dam/boeing/boeingdotcom/company/key_orgs/boeing-international/pdf/chinabackgrounder.pdf" },
+    ],
+    gaps: ["中国材料进入BDS的内部领料、工单或项目编号", "列名业务单元管控前的直接进口基线", "原始提单号、采购订单与最终收货仓库", "57条重复出现记录的物理票归并"],
+  },
+];
 const delay = (index: number) => ({ "--delay": `${Math.min(index * 70, 560)}ms` } as CSSProperties);
 const regionStopOne = regionData[0].share;
 const regionStopTwo = regionStopOne + regionData[1].share;
@@ -128,14 +189,6 @@ export default function Home() {
 
       <header className="topbar">
         <div className="header-shell">
-          <button className="brand" onClick={() => selectView("home")} aria-label="返回首页">
-            <span className="brand-mark">控</span>
-            <span className="brand-copy">
-              <strong>战略贸易管制监测台</strong>
-              <small>STRATEGIC TRADE CONTROL</small>
-            </span>
-          </button>
-
           <nav className="primary-nav" aria-label="主要导航">
             <button className={`nav-home ${activeView === "home" ? "active" : ""}`} onClick={() => selectView("home")}>
               首页
@@ -170,7 +223,7 @@ export default function Home() {
             ))}
           </nav>
 
-          <div className="asof"><i /> 数据更新至 2026.08.24</div>
+          <div className="asof"><i /> 数据更新至 2026.08.25</div>
         </div>
       </header>
 
@@ -308,13 +361,83 @@ function TimelineModule() {
 }
 
 function ScreeningModule({ onSelect }: { onSelect: (view: View) => void }) {
-  const stages = [
-    ["01", "列名对象锚定", "统一中英文名称、曾用名、地址及集团归属。"],
-    ["02", "管控前基线", "确认被管控前自中国进口的商品、供应商与频次。"],
-    ["03", "管控后替代主体", "排查同集团关联公司、代理商或新设贸易主体。"],
-    ["04", "连续交易验证", "用时间、商品、港口和供应商重合度形成证据链。"],
+  const [selectedId, setSelectedId] = useState(screeningEntities[0].id);
+  const [entityQuery, setEntityQuery] = useState("");
+  const entity = screeningEntities.find((item) => item.id === selectedId) || screeningEntities[0];
+  const currentCase = screeningCases.find((item) => item.entityId === entity.id) || screeningCases[0];
+  const matchingEntities = screeningEntities.filter((item) => `${item.nameCn} ${item.nameEn}`.toLowerCase().includes(entityQuery.trim().toLowerCase()));
+  const hasEvidence = currentCase.nodes.length > 0 && currentCase.evidence.length > 0;
+  const ledger = [
+    ["关系证据", "集团控制、关联公司或代理关系"],
+    ["交易证据", "进口商、商品、供应商与运输记录"],
+    ["时间证据", "管控前后交易连续性与主体切换"],
   ];
-  return <div className="module-panel screening-layout"><article className="screening-intro"><span>RESEARCH PIPELINE</span><h2>从名单命中走向替代进口识别</h2><p>本模块先展示排查框架。后续接入贸易数据后，可按列名企业逐一判断是否通过其他主体延续自中国进口。</p><button onClick={() => onSelect("method")}>查看完整穿透方法 <span>↗</span></button></article><div className="screening-steps">{stages.map(([index, title, note], position) => <article className="reveal" style={delay(position)} key={index}><span>{index}</span><div><h3>{title}</h3><p>{note}</p></div><i>{position < stages.length - 1 ? "↓" : "✓"}</i></article>)}</div><div className="screening-status"><div><i /><span>当前状态</span><strong>框架已建立</strong></div><p>暂无未经核验的替代进口结论在公开页面展示。研究结果将以“线索—证据—置信度”三层结构呈现。</p></div></div>;
+
+  return <div className="module-panel penetration-workspace">
+    <div className="penetration-toolbar">
+      <label className="penetration-search"><span>⌕</span><input value={entityQuery} onChange={(event) => setEntityQuery(event.target.value)} placeholder="筛选编号 1—5 的企业实体" /></label>
+      <select aria-label="选择管制企业" value={selectedId} onChange={(event) => setSelectedId(Number(event.target.value))}>{screeningEntities.map((item) => <option value={item.id} key={item.id}>{String(item.id).padStart(3, "0")} · {item.nameCn}</option>)}</select>
+      <button className="penetration-method" onClick={() => onSelect("method")}>穿透方法 <span>↗</span></button>
+    </div>
+
+    <div className="penetration-kpis" aria-label="当前实体研判概览">
+      <article><span>当前实体</span><strong>{String(entity.id).padStart(3, "0")}</strong><small>{entity.region} · {entity.entityType}</small></article>
+      <article className={hasEvidence ? "positive" : "pending"}><span>替代进口研判</span><strong>{currentCase.finding}</strong><small>仅展示有证据指向的路径</small></article>
+      <article><span>可核验证据</span><strong>{currentCase.evidence.length}</strong><small>关系 × 交易 × 时间</small></article>
+      <article><span>研判置信度</span><strong>{hasEvidence ? currentCase.confidence : "—"}</strong><small>{hasEvidence ? "评分反映证据完整度" : "无证据不作推断"}</small></article>
+    </div>
+
+    <div className="penetration-layout">
+      <aside className="entity-picker-panel">
+        <header><div><span>ENTITY SELECTOR</span><strong>管制企业筛选</strong></div><small>{matchingEntities.length} / 5</small></header>
+        <div className="entity-picker-list">
+          {matchingEntities.map((item, index) => <button className={item.id === entity.id ? "active" : ""} onClick={() => setSelectedId(item.id)} key={item.id} style={delay(index)}>
+            <b>{String(item.id).padStart(3, "0")}</b><span><strong>{item.nameCn}</strong><small>{item.nameEn}</small></span><i>{item.id === entity.id ? "●" : "↗"}</i>
+          </button>)}
+          {!matchingEntities.length && <div className="entity-picker-empty">未找到匹配实体</div>}
+        </div>
+        <p><i />当前原型范围：官方清单编号 1—5</p>
+      </aside>
+
+      <section className="penetration-case-panel">
+        <header className="case-heading">
+          <div><span>SELECTED ENTITY · {String(entity.id).padStart(3, "0")}</span><h2>{entity.nameCn}</h2><p>{entity.nameEn}</p></div>
+          <div className="case-heading-meta"><span>{entity.notice}</span><time>{entity.effectiveDate}</time><a href={entity.sourceUrl} target="_blank" rel="noreferrer">官方公告 ↗</a></div>
+        </header>
+
+        <div className={`chain-evidence-board ${hasEvidence ? "has-evidence" : "is-empty"}`}>
+          <div className="chain-board-head"><div><span>SUPPLY CHAIN MAP</span><strong>替代进口供应链</strong></div><div><span>{currentCase.nodes.length} 节点</span><span>{Math.max(0, currentCase.nodes.length - 1)} 关系</span><i /></div></div>
+          {hasEvidence && <div className="chain-risk-note"><b>{currentCase.confidence}</b><p>{currentCase.summary}</p><span>评分用于确定核查优先级，不代表规避行为已经发生。</span></div>}
+          <div className="chain-canvas">
+            <div className="chain-scan" aria-hidden="true" />
+            {hasEvidence ? <div className="chain-node-row">
+              {currentCase.nodes.map((node, index) => <div className="chain-node-wrap" key={`${node.stage}-${node.name}`}>
+                <article className={`chain-node ${node.tone}`}><span>{node.stage}</span><strong>{node.name}</strong><small>{node.note}</small></article>
+                {index < currentCase.nodes.length - 1 && <div className={`chain-link ${node.connection === "pending" ? "pending" : "verified"}`}><i /><b>›</b><small>{node.connection === "pending" ? "流向待核" : "贸易记录"}</small></div>}
+              </div>)}
+            </div> : <div className="chain-empty-state">
+              <div className="empty-radar"><i /><span /><b /></div>
+              <small>NO VERIFIED PATH</small><h3>暂未发现替代供应链</h3>
+              <p>{currentCase.summary}</p>
+              <ul>{currentCase.checks.map((item) => <li key={item}><i />{item}</li>)}</ul>
+            </div>}
+          </div>
+        </div>
+
+        <div className="penetration-ledger-grid">
+          <article className="evidence-ledger">
+            <header><div><span>EVIDENCE LEDGER</span><strong>证据台账</strong></div><b>{currentCase.evidence.length} 条</b></header>
+            {hasEvidence ? <div>{currentCase.evidence.map((item) => <section key={`${item.category}-${item.title}`}><i /><div><span>{item.category}</span><strong>{item.title}</strong><p>{item.detail}</p>{item.url && <a href={item.url} target="_blank" rel="noreferrer">{item.source || "查看来源"} ↗</a>}</div></section>)}</div> : <div className="ledger-empty">{ledger.map(([title, note]) => <section key={title}><i /><div><strong>{title}</strong><p>{note}</p></div><span>待补证</span></section>)}</div>}
+          </article>
+          <article className="verification-gaps">
+            <header><div><span>VERIFICATION GAPS</span><strong>尚待核实</strong></div><b>{currentCase.gaps.length}</b></header>
+            <p>{hasEvidence ? "当前链路仅用于风险排序；在内部流向闭合前，不认定为已证实替代进口。" : "“暂未发现”仅表示当前证据库未形成可报告链路，不等同于不存在相关交易。"}</p>
+            <ol>{currentCase.gaps.map((gap, index) => <li key={gap}><span>{String(index + 1).padStart(2, "0")}</span>{gap}</li>)}</ol>
+          </article>
+        </div>
+      </section>
+    </div>
+  </div>;
 }
 
 function MethodModule({ onSelect }: { onSelect: (view: View) => void }) {
