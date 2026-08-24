@@ -309,7 +309,7 @@ function EntityRegistry(props: {
 }
 
 function NoticeModule() {
-  return <div className="module-panel"><div className="notice-grid">{notices.map((notice, index) => <article className="notice-card reveal" style={delay(index)} key={notice.notice}><div className="notice-top"><span className={`tag ${regionTone[notice.region]}`}>{notice.region}</span><time>{notice.date}</time></div><div className="notice-index">{String(data.notices.length - index).padStart(2, "0")}</div><h3>{notice.notice}</h3><p>本批次新增 <strong>{notice.count}</strong> 个管控实体。</p><div className="notice-bottom"><span><b>{notice.count}</b> ENTITIES</span><a href={notice.url} target="_blank" rel="noreferrer">公告原文 ↗</a></div></article>)}</div></div>;
+  return <div className="module-panel"><div className="notice-grid">{notices.map((notice, index) => <article className={`notice-card reveal ${regionTone[notice.region]}`} style={delay(index)} key={notice.notice}><div className="notice-top"><span className={`tag ${regionTone[notice.region]}`}>{notice.region}</span><time>{notice.date}</time></div><div className="notice-index">{String(data.notices.length - index).padStart(2, "0")}</div><h3>{notice.notice}</h3><p>本批次新增 <strong>{notice.count}</strong> 个管控实体。</p><div className="notice-bottom"><span><b>{notice.count}</b> ENTITIES</span><a href={notice.url} target="_blank" rel="noreferrer">公告原文 ↗</a></div></article>)}</div></div>;
 }
 
 function TimelineModule() {
