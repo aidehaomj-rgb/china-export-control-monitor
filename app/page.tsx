@@ -31,8 +31,12 @@ const notices = [...data.notices].reverse();
 const companyCount = data.entities.filter((item) => item.entityType === "企业").length;
 const institutionCount = data.entities.length - companyCount;
 const delay = (index: number) => ({ "--delay": `${Math.min(index * 70, 560)}ms` } as CSSProperties);
+const regionStopOne = regionData[0].share;
+const regionStopTwo = regionStopOne + regionData[1].share;
+const regionStopThree = regionStopTwo + regionData[2].share;
+const segmentGap = 0.65;
 const donutStyle = {
-  background: `conic-gradient(#ff737d 0 ${regionData[0].share}%, #f0b45b ${regionData[0].share}% ${regionData[0].share + regionData[1].share}%, #629df5 ${regionData[0].share + regionData[1].share}% ${regionData[0].share + regionData[1].share + regionData[2].share}%, #b682f6 ${regionData[0].share + regionData[1].share + regionData[2].share}% 100%)`,
+  background: `conic-gradient(from -90deg, #08c8d5 0 ${regionStopOne - segmentGap}%, transparent ${regionStopOne - segmentGap}% ${regionStopOne}%, #347cff ${regionStopOne}% ${regionStopTwo - segmentGap}%, transparent ${regionStopTwo - segmentGap}% ${regionStopTwo}%, #7b68f6 ${regionStopTwo}% ${regionStopThree - segmentGap}%, transparent ${regionStopThree - segmentGap}% ${regionStopThree}%, #ee5fa8 ${regionStopThree}% ${100 - segmentGap}%, transparent ${100 - segmentGap}% 100%)`,
 } as CSSProperties;
 
 const menuGroups: Array<{
@@ -296,8 +300,12 @@ function CountryPanel({ onSelect }: { onSelect: (view: View) => void }) {
     <article className="country-panel">
       <div className="panel-heading"><div><span>GEOGRAPHIC EXPOSURE</span><h2>国家 / 地区分布</h2></div><button onClick={() => onSelect("countries")}>查看详情 ↗</button></div>
       <div className="country-visual">
-        <div className="donut-shell">
-          <div className="donut-halo" /><div className="donut" style={donutStyle} /><div className="donut-core"><strong>4</strong><span>国家 / 地区</span></div>
+        <div className="donut-shell" aria-hidden="true">
+          <div className="donut-halo" />
+          <div className="donut-radar" />
+          <div className="donut" style={donutStyle} />
+          <i className="donut-node dn-one" /><i className="donut-node dn-two" /><i className="donut-node dn-three" /><i className="donut-node dn-four" />
+          <div className="donut-core"><small>GEO NODES</small><strong>04</strong><span>区域覆盖</span></div>
         </div>
         <div className="country-legend">
           {regionData.map((item) => (
