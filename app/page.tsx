@@ -147,14 +147,19 @@ export default function Home() {
               首页
             </button>
             {menuGroups.map((group) => (
-              <div className="nav-group" key={group.id}>
+              <div
+                className="nav-group"
+                key={group.id}
+                onMouseEnter={() => setOpenMenu(group.id)}
+                onMouseLeave={() => setOpenMenu(null)}
+              >
                 <button
                   className={`nav-trigger ${group.views.includes(activeView) ? "active" : ""}`}
                   aria-expanded={openMenu === group.id}
                   aria-haspopup="menu"
-                  onClick={() => setOpenMenu(openMenu === group.id ? null : group.id)}
+                  onClick={() => setOpenMenu(group.id)}
                 >
-                  {group.label}<span className={openMenu === group.id ? "up" : ""}>⌄</span>
+                  {group.label}
                 </button>
                 {openMenu === group.id && (
                   <div className="nav-dropdown" role="menu">
