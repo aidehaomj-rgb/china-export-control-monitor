@@ -77,14 +77,6 @@ const menuGroups: Array<{
   },
 ];
 
-const viewMeta: Record<Exclude<View, "home">, { kicker: string; title: string; note: string }> = {
-  entities: { kicker: "ENTITY REGISTRY", title: "管制企业清单", note: "官方列名直接入库 · 暂未按集团控制关系合并" },
-  notices: { kicker: "OFFICIAL NOTICES", title: "公告库", note: "11批公告 · 商务部官方原文" },
-  timeline: { kicker: "POLICY SIGNAL TRACK", title: "政策时间轴", note: "制度落地 · 对象扩围 · 域外约束" },
-  screening: { kicker: "CONTINUITY SCREENING", title: "替代进口排查", note: "识别管控后可能延续自中国进口的替代主体" },
-  method: { kicker: "PENETRATION METHOD", title: "关联穿透方法", note: "从集团控制关系走向贸易延续证据" },
-};
-
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("home");
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
@@ -187,42 +179,31 @@ export default function Home() {
       {activeView === "home" ? (
         <HomeDashboard onSelect={selectView} />
       ) : (
-        <>
-          <section className="module-hero shell">
-            <div>
-              <span>{viewMeta[activeView].kicker}</span>
-              <h1>{viewMeta[activeView].title}</h1>
-              <p>{viewMeta[activeView].note}</p>
-            </div>
-            <button onClick={() => selectView("home")}>返回总览 <span>↗</span></button>
-          </section>
-
-          <section className="content shell" id="workspace">
-            {activeView === "entities" && (
-              <EntityRegistry
-                query={query}
-                region={region}
-                year={year}
-                type={type}
-                filtered={filtered}
-                visible={visible}
-                page={page}
-                pages={pages}
-                currentPage={currentPage}
-                setPage={setPage}
-                changeFilter={changeFilter}
-                setQuery={setQuery}
-                setRegion={setRegion}
-                setYear={setYear}
-                setType={setType}
-              />
-            )}
-            {activeView === "notices" && <NoticeModule />}
-            {activeView === "timeline" && <TimelineModule />}
-            {activeView === "screening" && <ScreeningModule onSelect={selectView} />}
-            {activeView === "method" && <MethodModule onSelect={selectView} />}
-          </section>
-        </>
+        <section className="content shell" id="workspace">
+          {activeView === "entities" && (
+            <EntityRegistry
+              query={query}
+              region={region}
+              year={year}
+              type={type}
+              filtered={filtered}
+              visible={visible}
+              page={page}
+              pages={pages}
+              currentPage={currentPage}
+              setPage={setPage}
+              changeFilter={changeFilter}
+              setQuery={setQuery}
+              setRegion={setRegion}
+              setYear={setYear}
+              setType={setType}
+            />
+          )}
+          {activeView === "notices" && <NoticeModule />}
+          {activeView === "timeline" && <TimelineModule />}
+          {activeView === "screening" && <ScreeningModule onSelect={selectView} />}
+          {activeView === "method" && <MethodModule onSelect={selectView} />}
+        </section>
       )}
 
     </main>
