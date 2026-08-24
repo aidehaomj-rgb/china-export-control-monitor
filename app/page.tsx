@@ -239,7 +239,7 @@ function HomeDashboard({ onSelect }: { onSelect: (view: View) => void }) {
       <section className="home-hero shell">
         <div className="hero-copy">
           <h1>中国出口管制<br /><em>实体与政策情报台</em></h1>
-          <p>把官方名单、政策公告与潜在替代贸易路径放在同一张情报底图上，支持从对象识别走向关系穿透。</p>
+          <p className="hero-slogan"><span>对象识别</span><i /><span>关系穿透</span></p>
           <div className="hero-actions">
             <button onClick={() => onSelect("entities")}>进入管制清单 <span>↗</span></button>
             <button onClick={() => onSelect("timeline")}>查看政策演进</button>
