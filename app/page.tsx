@@ -395,16 +395,23 @@ function ScreeningModule() {
         </header>
 
         <div className={`chain-evidence-board ${hasEvidence ? "has-evidence" : "is-empty"}`}>
-          <div className="chain-board-head"><strong>替代进口供应链</strong><div><span>{currentCase.nodes.length} 节点</span><span>{Math.max(0, currentCase.nodes.length - 1)} 关系</span><i /></div></div>
+          <div className="chain-board-head">
+            <div><strong>替代进口供应链</strong><span>SUPPLY CHAIN TRACE</span></div>
+            <div className="chain-board-meta"><span>{currentCase.nodes.length} 节点</span><span>{Math.max(0, currentCase.nodes.length - 1)} 关系</span><b className={hasEvidence ? "signal-on" : "signal-off"}>{hasEvidence ? "线索链路" : "未形成链路"}</b></div>
+          </div>
           {hasEvidence && <div className="chain-risk-note"><p>{currentCase.summary}</p><span>当前为风险线索，尚未形成最终用途闭环。</span></div>}
           <div className="chain-canvas">
             {hasEvidence ? <div className="chain-node-row">
               {currentCase.nodes.map((node, index) => <div className="chain-node-wrap" key={`${node.stage}-${node.name}`}>
-                <article className={`chain-node ${node.tone}`}><span>{node.stage}</span><strong>{node.name}</strong><small>{node.note}</small></article>
-                {index < currentCase.nodes.length - 1 && <div className={`chain-link ${node.connection === "pending" ? "pending" : "verified"}`}><i /><b>›</b><small>{node.connection === "pending" ? "流向待核" : "贸易记录"}</small></div>}
+                <article className={`chain-node ${node.tone}`}>
+                  <header><b>{String(index + 1).padStart(2, "0")}</b><span>{node.stage}</span><i /></header>
+                  <strong>{node.name}</strong><small>{node.note}</small>
+                  <footer><span>{node.tone === "source" ? "SOURCE" : node.tone === "alternate" ? "IMPORTER" : "TARGET"}</span><b>{node.connection === "pending" ? "关系已核" : index === currentCase.nodes.length - 1 ? "列名对象" : "交易可见"}</b></footer>
+                </article>
+                {index < currentCase.nodes.length - 1 && <div className={`chain-link ${node.connection === "pending" ? "pending" : "verified"}`}><span>{node.connection === "pending" ? "内部流向" : "进口记录"}</span><i /><b>›</b><small>{node.connection === "pending" ? "待核" : "已核"}</small></div>}
               </div>)}
             </div> : <div className="chain-empty-state">
-              <div className="empty-radar"><i /><span /><b /></div>
+              <div className="empty-radar"><i /><span /><b /><em>00</em></div>
               <h3>暂未发现替代供应链</h3>
               <p>{currentCase.summary}</p>
               <ul>{currentCase.checks.map((item) => <li key={item}><i />{item}</li>)}</ul>
