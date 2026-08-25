@@ -34,23 +34,35 @@ const regionData = ["美国", "日本", "欧盟", "台湾地区"].map((name) => 
 const notices = [...data.notices].reverse();
 const companyCount = data.entities.filter((item) => item.entityType === "企业").length;
 const institutionCount = data.entities.length - companyCount;
-const screeningEntities = data.entities.slice(0, 5);
+const screeningEntityIds = [1, 2, 3, 4, 5, 29, 33, 53, 55];
+const screeningEntities = data.entities.filter((item) => screeningEntityIds.includes(item.id));
 const screeningCases: ScreeningCase[] = [
   {
     entityId: 1,
-    finding: "暂未发现替代供应链",
-    confidence: "—",
-    summary: "当前证据库未形成通用动力通过其他主体继续自中国进口的可报告链路。",
-    checks: ["General Dynamics Corporation / Company 法定名称", "Gulfstream 与 Mission Systems 核心业务单元", "管控后中国原产记录与全球贸易结果"],
-    nodes: [], evidence: [],
-    gaps: ["其他业务单元与子公司别名补查", "管控前自中国进口基线", "集团内部采购与领料记录"],
+    finding: "高风险供应链",
+    confidence: "A级 · 100分",
+    summary: "易迅数据显示，列管后General Dynamics旗下NASSCO持续接收中国供应商的船用阀门与控制舱舷梯部件；官方资料将NASSCO明确列为General Dynamics海事系统业务单元，已形成“境内供货—集团业务单元收货—列名母公司”的证据闭环。",
+    checks: ["General Dynamics / NASSCO法定名称与集团关系", "2024-08-20至2026-08-20两年数据", "中国原产筛选与206条基准结果", "货描、日期、重量和收货主体"],
+    nodes: [
+      { stage: "中国供应端", name: "Neway Valve (Suzhou) / Ningbo Sup Bearing", note: "苏州阀门与宁波船舶结构件供应节点", tone: "source", connection: "verified", linkLabel: "中国原产" },
+      { stage: "集团收货单元", name: "General Dynamics NASSCO", note: "General Dynamics海事系统业务单元", tone: "alternate", connection: "verified", linkLabel: "管控后进口" },
+      { stage: "列名母公司", name: "General Dynamics", note: "2025-01-02起列入出口管制管控名单", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "General Dynamics自2025年1月2日起列名", detail: "商务部公告2025年第1号将通用动力公司列入出口管制管控名单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zcfb/dwmygl/art/2025/art_c14d6b7d45e247c596f4d3ecdda9b291.html" },
+      { category: "关系证据", title: "NASSCO属于General Dynamics海事系统", detail: "General Dynamics官网将NASSCO列为Marine Systems业务单元，并说明其承担辅助舰、支援舰和船舶维修业务。", source: "General Dynamics 官方业务页", url: "https://www.gd.com/our-businesses/marine-systems" },
+      { category: "易迅验证", title: "206条基准结果中筛得3条中国来源记录", detail: "查询条件：采购商GENERAL DYNAMICS NASSCO，时间2024-08-20至2026-08-20；中国来源结果包括2025-07-07控制舱舷梯部件，以及2026-08-15苏州Neway船用阀门。", source: "易迅数据 · 美国进口记录 · 2026-08-25核验" },
+      { category: "交易证据", title: "列管后中国船舶部件直接进入NASSCO", detail: "2025-07-07，Ningbo Sup Bearing向NASSCO交付CONTROL HOUSE COMPANIONWAY/STAIRWAY，5件、2,095千克；2026-08-15，Neway Valve (Suzhou)交付阀门，合计35件、23,154千克。", source: "易迅数据 · 中国原产筛选" },
+      { category: "综合评分", title: "证据闭环评分：100/100", detail: "列管身份15/15、集团关系20/20、中国来源25/25、管控后交易25/25、船舶产品匹配15/15。评分仅用于风险排序，不构成违规认定。" },
+    ],
+    gaps: ["取得原始提单号、商业发票与原产地证", "核对阀门及结构件对应的具体舰船项目", "核验相关物项编码与许可证状态"],
   },
   {
     entityId: 2,
     finding: "高风险替代供应链",
-    confidence: "A级 · 95分",
-    summary: "列管后，香港 Fabricators International Ltd 至少三次向 L3Harris 交付车载充电器；制造资料将该供应体系的生产厂明确落到广东东莞，已形成“中国制造—香港承接—列名实体收货”的高风险证据链。",
-    checks: ["L3Harris Technologies 精确采购商名称", "Fabricators International 香港主体与东莞制造端映射", "管控后提单日期、货描与收货地址", "L3Harris 官方同名产品用途"],
+    confidence: "A级 · 100分",
+    summary: "易迅全量核验确认：列管后L3Harris既从上海直接进口电源，也通过香港Fabricators与Kopplen持续接收车载充电器、线缆和电台附件；公开制造资料同时指向广东东莞生产体系。",
+    checks: ["L3Harris Technologies精确采购商名称", "149条结果逐页读取与147条精确去重", "中国内地、香港与台湾来源筛选", "供应商、产品、日期与重量交叉核验"],
     nodes: [
       { stage: "中国制造端", name: "ICC Electronics (Dongguan) Ltd.", note: "Fabricators International 制造体系；广东东莞工厂", tone: "source", connection: "verified", linkLabel: "制造映射" },
       { stage: "境外承接主体", name: "Fabricators International Ltd.", note: "香港发货主体；车载充电器出口商", tone: "alternate", connection: "verified", linkLabel: "管控后发运" },
@@ -60,8 +72,10 @@ const screeningCases: ScreeningCase[] = [
       { category: "管控基线", title: "L3Harris自2025年1月2日起列入管控名单", detail: "商务部公告2025年第1号将L3哈里斯公司列入出口管制管控名单，相关出口活动应当立即停止；特殊情况需申请许可。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zcfb/dwmygl/art/2025/art_c14d6b7d45e247c596f4d3ecdda9b291.html" },
       { category: "制造关系", title: "香港出口主体对应东莞制造体系", detail: "制造与检测资料将ICC Electronics (Dongguan) Ltd.与Fabricators International Ltd.并列标识为制造方/工厂，地址位于广东省东莞市清溪镇。", source: "制造商UN38.3资料", url: "https://www.netapp.com/media/65934-DocPack-310-00251-D2-271-00029.pdf" },
       { category: "交易证据", title: "管控后至少3票车载充电器到货", detail: "公开提单显示：2025-06-30为84箱、2025-11-18为83箱/757千克、2025-12-23为42箱/381千克；发货人均为香港Fabricators，收货人均为L3Harris。", source: "ImportGenius · 美国海关记录", url: "https://www.importgenius.com/importers/l3harris-technologies-inc" },
+      { category: "易迅验证", title: "149条全量结果完成逐页核验", detail: "查询条件：采购商L3HARRIS TECHNOLOGIES、2024-08-20至2026-08-20；149条原始记录、147条可见字段唯一记录，其中35条进口，列管后中国内地/香港/台湾来源14条。", source: "易迅数据 · 8页逐页审计 · 2026-08-25核验" },
+      { category: "直接进口", title: "上海供货方在列管后直接交付电源", detail: "2025-02-23，Omnion Power Shanghai Co Ltd向L3Harris Technologies Inc交付POWER SUPPLY/CONTAINER POWER SUPPLY，72件、777千克、金额15,540美元，易迅原产地标注为China。", source: "易迅数据 · 美国进口记录" },
       { category: "产品匹配", title: "货描与L3Harris官方通信产品一致", detail: "提单货描为VEHICULAR CHARGER；L3Harris官网将Premium Vehicular Charger列为XL系列任务通信电台配套充电设备。", source: "L3Harris 官方产品页", url: "https://www.l3harris.com/all-capabilities/xl-two-bay-portable-radio-charger" },
-      { category: "综合评分", title: "证据闭环评分：95/100", detail: "列管身份15/15、中国制造端20/25、境外主体承接20/20、管控后交易25/25、产品与终端用途匹配15/15。扣分项为三票货物的原产地证明尚未取得。" },
+      { category: "综合评分", title: "证据闭环评分：100/100", detail: "列管身份15/15、中国来源25/25、境外承接20/20、管控后交易25/25、通信产品匹配15/15。直接上海记录与香港承接记录相互补强。" },
     ],
     gaps: ["取得商业发票、原产地证或生产批号，确认三票货物由东莞工厂实际生产", "核对提单采购订单及L3Harris料号，闭合具体型号对应关系", "按中国两用物项清单核定车载充电器及其部件的管制编码与许可证状态"],
   },
@@ -69,8 +83,8 @@ const screeningCases: ScreeningCase[] = [
     entityId: 3,
     finding: "暂未发现替代供应链",
     confidence: "—",
-    summary: "当前口径下未检出英特磊列名主体或集团别名的可用贸易记录。",
-    checks: ["Intelligent Epitaxy Technology 精确名称", "IntelliEPI Inc. 集团别名", "全球来源与中国原产两组口径"],
+    summary: "易迅两年口径下暂未发现替代供应链：列名主体与IntelliEPI别名均为0条结果。",
+    checks: ["INTELLIGENT EPITAXY TECHNOLOGY INC精确名称：0条", "INTELLIEPI别名：0条", "时间范围：2024-08-20至2026-08-20", "采购商、全球来源与中国原产口径"],
     nodes: [], evidence: [],
     gaps: ["地址、曾用名与报关名称映射", "外延片及关键原料商品词补查", "管控前进口基线"],
   },
@@ -78,8 +92,8 @@ const screeningCases: ScreeningCase[] = [
     entityId: 4,
     finding: "暂未发现替代供应链",
     confidence: "—",
-    summary: "未检出 Clear Align LLC 的贸易记录；公开资料称其制造体系在美国垂直整合，现阶段缺少境外替代进口指向。",
-    checks: ["Clear Align LLC 精确名称全球检索", "中国原产条件", "公开制造布局与集团/子公司关系"],
+    summary: "易迅两年口径下暂未发现替代供应链：Clear Align LLC与ClearAlign别名均为0条结果。",
+    checks: ["CLEAR ALIGN LLC精确名称：0条", "CLEARALIGN别名：0条", "时间范围：2024-08-20至2026-08-20", "采购商、全球来源与中国原产口径"],
     nodes: [], evidence: [],
     gaps: ["采购订单与供应商名录", "光学材料上游原产地", "关联公司报关别名"],
   },
@@ -88,7 +102,7 @@ const screeningCases: ScreeningCase[] = [
     finding: "集团承接风险线索",
     confidence: "B级 · 60分",
     summary: "波音防务精确名未检出记录，但其集团母体在管控后持续自中国进口航空材料与部件；集团内部最终流向尚未闭合。",
-    checks: ["Boeing Defense, Space & Security 精确名称", "The Boeing Company 集团进口主体", "300条原始结果全页读取与精确去重", "商品、防务关键词与最终用途反证核查"],
+    checks: ["Boeing Defense, Space & Security精确名称：两年口径0条", "The Boeing Company集团进口主体", "300条原始结果全页读取与精确去重", "商品、防务关键词与最终用途反证核查"],
     nodes: [
       { stage: "中国供应端", name: "航空材料与部件供应商", note: "Novelis镇江、中化蓝天、烟台金泰、AVIC等", tone: "source", connection: "verified" },
       { stage: "集团进口主体", name: "The Boeing Company", note: "243条可见字段唯一记录；美国进口主体", tone: "alternate", connection: "pending" },
@@ -101,6 +115,86 @@ const screeningCases: ScreeningCase[] = [
       { category: "证据边界", title: "尚无防务最终用途闭环", detail: "243条唯一记录中未命中BDS或具体防务型号关键词；部分货描明确为商用飞机，波音中国资料亦将多项在华供应说明为商用飞机供应链。", source: "Boeing 中国背景资料", url: "https://www.boeing.com/content/dam/boeing/boeingdotcom/company/key_orgs/boeing-international/pdf/chinabackgrounder.pdf" },
     ],
     gaps: ["中国材料进入BDS的内部领料、工单或项目编号", "列名业务单元管控前的直接进口基线", "原始提单号、采购订单与最终收货仓库", "57条重复出现记录的物理票归并"],
+  },
+  {
+    entityId: 29,
+    finding: "高风险替代供应链",
+    confidence: "A级 · 100分",
+    summary: "列管后，Leidos的安检设备子公司继续从天津、昆山和苏州接收CT机架、X光机组件及安检设备部件；易迅实际采购商名称存在AUTOMAT ION断词，反向供应商检索后形成完整证据链。",
+    checks: ["LEIDOS与法定子公司名称双口径", "易迅实际断词AUTOMAT ION补查", "天津Schleifring供应商反向检索", "2025-03-04列管日前后日期与产品核验"],
+    nodes: [
+      { stage: "中国供应端", name: "Schleifring Tianjin / Sanmina Kunshan / Suzhou Shijia", note: "CT机架、X光机与安检设备组件", tone: "source", connection: "verified", linkLabel: "中国原产" },
+      { stage: "集团进口主体", name: "Leidos Security Detection & Automation, Inc.", note: "Leidos安检设备子公司；美国收货人", tone: "alternate", connection: "verified", linkLabel: "管控后进口" },
+      { stage: "列名母公司", name: "Leidos", note: "2025-03-04起列入出口管制管控名单", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "Leidos自2025年3月4日起列名", detail: "商务部公告2025年第13号将莱多斯公司列入出口管制管控名单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zcfb/zc/art/2025/art_39c51608fa5c40ee833f984cfcc24abe.html" },
+      { category: "关系证据", title: "进口主体是Leidos列示子公司", detail: "Leidos 2026年SEC Exhibit 21继续列示Leidos Security Detection & Automation, Inc.为集团子公司。", source: "Leidos 2026 Form 10-K · Exhibit 21", url: "https://www.sec.gov/Archives/edgar/data/1336920/000133692026000030/ldos1022026ex21.htm" },
+      { category: "易迅验证", title: "修正断词后命中14条精确记录", detail: "采购商使用易迅实际拼写LEIDOS SECURITY DETECTION & AUTOMAT ION, INC.，两年口径返回14条；其中列管后中国进口6条。", source: "易迅数据 · 环球提单 · 2026-08-25核验" },
+      { category: "交易证据", title: "天津CT机架在列管后持续到货", detail: "2025-06-24、06-26、07-15各10件/7,905千克，2025-09-25与10-16各8件/6,324千克；货描均为CT GANTRY，供应商为Schleifring Transmission Technology（Tianjin）。", source: "易迅数据 · 中国原产筛选" },
+      { category: "综合评分", title: "证据闭环评分：100/100", detail: "列管身份15/15、集团关系20/20、中国来源25/25、管控后交易25/25、安检设备产品匹配15/15。" },
+    ],
+    gaps: ["取得原始提单号和商业发票", "核验CT机架及X光组件的物项编码", "跟踪2026年Leidos安检业务合资重组后的实际收货主体"],
+  },
+  {
+    entityId: 33,
+    finding: "高风险替代供应链",
+    confidence: "A级 · 92分",
+    summary: "易迅两年基准查询返回718条Skydio记录；中国来源筛选命中2条列管后美国进口，供货方均为越南包装企业，形成“中国原产—越南主体—Skydio”的替代路径信号。",
+    checks: ["SKYDIO INC两年基准：718条", "中国原产筛选：2条", "越南供应商与美国收货人名称", "日期、重量、件数与包装货描"],
+    nodes: [
+      { stage: "中国来源", name: "包装材料与组件", note: "易迅原产地字段标注China", tone: "source", connection: "verified", linkLabel: "原产标注" },
+      { stage: "境外承接主体", name: "Super Bold Vietnam / J Packaging Vina", note: "越南发货企业；包装与箱体供应", tone: "alternate", connection: "verified", linkLabel: "列管后发运" },
+      { stage: "列名收货实体", name: "Skydio, Inc.", note: "美国进口商；2025-03-04起列名", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "Skydio自2025年3月4日起列名", detail: "商务部公告2025年第13号将斯凯迪奥公司列入出口管制管控名单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zcfb/zc/art/2025/art_39c51608fa5c40ee833f984cfcc24abe.html" },
+      { category: "易迅验证", title: "718条基准记录中筛得2条中国来源", detail: "查询条件：采购商SKYDIO INC，时间2024-08-20至2026-08-20；基准718条，中国来源2条，香港来源0条。", source: "易迅数据 · 美国进口记录 · 2026-08-25核验" },
+      { category: "交易证据", title: "越南供应商向Skydio交付中国来源包装组件", detail: "2026-05-05，Super Bold (Vietnam) Packaging交付57件、1,819千克；2026-04-21，J Packaging Vina交付126件、716千克。易迅原产地均标注China。", source: "易迅数据 · 中国原产筛选" },
+      { category: "证据边界", title: "产品为包装材料，未闭合无人机核心部件", detail: "货描包括纸托、板材、保护角、塑料卡扣和瓦楞箱；可以证明列管后中国来源交易延续，但不能据此推断进入无人机核心系统。" },
+      { category: "综合评分", title: "风险评分：92/100", detail: "列管身份15/15、中国来源25/25、境外承接20/20、管控后交易25/25、产品关联7/15。高分代表排查优先级，不代表规避管制的法律结论。" },
+    ],
+    gaps: ["取得原产地证与越南供应商采购发票", "确认包装组件是否随整机或备件项目配套", "补查越南供应商的中国上游生产企业"],
+  },
+  {
+    entityId: 53,
+    finding: "高风险替代供应链",
+    confidence: "A级 · 98分",
+    summary: "列管后，马来西亚Oceaneering Solus向Oceaneering International交付自动驾驶人员运输车；易迅原产地标注为中国，构成“中国产品—马来西亚关联主体—列名实体”的高风险链路。",
+    checks: ["OCEANEERING INTERNATIONAL INC精确采购商", "中国原产条件", "Oceaneering Solus Malaysia关系", "自动驾驶车辆货描、日期与重量"],
+    nodes: [
+      { stage: "中国来源", name: "GRT People Mover Pilot Autonomous Vehicle", note: "易迅原产地字段标注China；9,660千克", tone: "source", connection: "verified", linkLabel: "原产标注" },
+      { stage: "境外承接主体", name: "Oceaneering Solus (Malaysia) Sdn Bhd", note: "马来西亚发货主体；SEC历史披露为关联企业", tone: "alternate", connection: "verified", linkLabel: "关联发运" },
+      { stage: "列名收货实体", name: "Oceaneering International, Inc.", note: "美国进口商；2025-04-04起列名", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "Oceaneering International自2025年4月4日起列名", detail: "商务部公告2025年第21号将国际海洋工程公司列入出口管制管控名单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zcfb/zc/art/2025/art_210b619d46384bcdbbc5265ca74c5412.html" },
+      { category: "易迅验证", title: "列管后命中1条中国来源自动驾驶车辆", detail: "2026-05-04，Oceaneering Solus (Malaysia)向Oceaneering International交付1台GRT PEOPLE MOVER PILOT AUTONOMOUS VEHICLE，重量9,660千克，目的国美国、原产地China。", source: "易迅数据 · 美国进口记录 · 2026-08-25核验" },
+      { category: "关系证据", title: "SEC历史披露Oceaneering Solus Malaysia关联关系", detail: "Oceaneering的SEC Exhibit 21曾列示Oceaneering Solus (Malaysia) Sdn. Bhd.及49%持股比例；最新股权与名称仍需补证。", source: "Oceaneering SEC Exhibit 21", url: "https://www.sec.gov/Archives/edgar/data/73756/000007375621000023/oii_exhibit2101x12312020.htm" },
+      { category: "产品匹配", title: "自动驾驶人员运输车与集团移动机器人业务高度相关", detail: "货描直接指向自动驾驶车辆，不是普通耗材；Oceaneering公开业务覆盖移动机器人与恶劣环境工程技术。", source: "Oceaneering 2025 Form 10-K", url: "https://www.sec.gov/Archives/edgar/data/73756/000007375626000016/oii-20251231.htm" },
+      { category: "综合评分", title: "风险评分：98/100", detail: "列管身份15/15、中国来源25/25、境外承接18/20、管控后交易25/25、产品匹配15/15。扣2分为马来西亚主体当前股权关系需刷新。" },
+    ],
+    gaps: ["取得2026年最新股权文件与关联交易说明", "取得车辆原产地证、采购合同及运输单证", "核验车辆最终项目、物项编码与许可证状态"],
+  },
+  {
+    entityId: 55,
+    finding: "高风险候选链路",
+    confidence: "B级 · 85分",
+    summary: "易迅确认MKA Engineers在2026-06-09向Cubic Transportation Systems交付印度来源不锈钢制品；同一MKA主体在此前数月从中国采购安防与机电组件。两段链已出现，但具体货品连续性尚未闭合。",
+    checks: ["CUBIC TRANSPORTATION SYSTEMS INC精确名称", "MKA ENGINEERS注册名与出口名", "MKA中国上游219条两年结果", "两段日期、货描与主体一致性"],
+    nodes: [
+      { stage: "中国上游", name: "Gunnebo Security (China) Co. Ltd", note: "交通灯、电气总成与TITAN组件", tone: "source", connection: "verified", linkLabel: "MKA进口" },
+      { stage: "第三国承接", name: "MKA Engineers and Exporters Pvt Ltd", note: "印度进口商及对美发货人", tone: "alternate", connection: "pending", linkLabel: "货品连续性" },
+      { stage: "集团收货实体", name: "Cubic Transportation Systems, Inc.", note: "Cubic Corporation交通系统业务", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "Cubic Corporation自2025年4月4日起列名", detail: "商务部公告2025年第21号将立方公司列入出口管制管控名单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zcfb/zc/art/2025/art_210b619d46384bcdbbc5265ca74c5412.html" },
+      { category: "下游交易", title: "MKA向Cubic交通系统交付不锈钢制品", detail: "2026-06-09，MKA Engineers and Exporters Pvt. Ltd.向Cubic Transportation Systems, Inc.交付STAINLESS STEEL FABRICATED GOODS，3件、488千克，原产地India。", source: "易迅数据 · 美国进口记录" },
+      { category: "上游交易", title: "MKA在对Cubic发货前持续从中国采购", detail: "MKA注册名两年口径返回219条；2025-12-16与2026-01-26多批从Gunnebo Security (China)进口交通灯、电气总成与TITAN组件。", source: "易迅数据 · 印度进口记录 · 2026-08-25核验" },
+      { category: "证据边界", title: "两段货描尚未形成同货闭环", detail: "中国上游为安防/机电组件，对Cubic下游为不锈钢制品；目前仅能证明同一中间主体的连续采购与供货行为，不能证明中国货物原样或实质转供。" },
+      { category: "综合评分", title: "候选链评分：85/100", detail: "列管身份15/15、集团关系15/20、中国上游20/25、管控后下游交易25/25、产品连续性10/15。未达到90分闭环阈值。" },
+    ],
+    gaps: ["取得MKA物料清单和批次对应关系", "核对中国进口件是否用于Cubic订单", "取得采购订单、发票、原产地证及提单号"],
   },
 ];
 const delay = (index: number) => ({ "--delay": `${Math.min(index * 70, 560)}ms` } as CSSProperties);
@@ -383,18 +477,10 @@ const clampPosition = (value: number, min: number, max: number) => Math.min(max,
 function DraggableChain({ nodes }: { nodes: ScreeningNode[] }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ index: number; pointerId: number; startX: number; startY: number; origin: NodePosition } | null>(null);
-  const layoutKey = nodes.map((node) => `${node.stage}:${node.name}`).join("|");
   const [positions, setPositions] = useState<NodePosition[]>(() => makeDefaultNodePositions(nodes.length));
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 900, height: 430 });
-
-  useEffect(() => {
-    setPositions(makeDefaultNodePositions(nodes.length));
-    setSelectedIndex(null);
-    setDraggingIndex(null);
-    dragRef.current = null;
-  }, [layoutKey, nodes.length]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -476,7 +562,7 @@ function DraggableChain({ nodes }: { nodes: ScreeningNode[] }) {
     })}
     {nodes.map((node, index) => {
       const position = positions[index] || makeDefaultNodePositions(nodes.length)[index];
-      return <article
+      return <div
         className={`chain-node chain-draggable-node ${node.tone} ${selectedIndex === index ? "selected" : ""} ${draggingIndex === index ? "dragging" : ""}`}
         style={{ left: `${position.x}%`, top: `${position.y}%` }}
         key={`${node.stage}-${node.name}`}
@@ -495,7 +581,7 @@ function DraggableChain({ nodes }: { nodes: ScreeningNode[] }) {
         <header><b>{String(index + 1).padStart(2, "0")}</b><span>{node.stage}</span><i /></header>
         <strong>{node.name}</strong><small>{node.note}</small>
         <footer><span>{node.tone === "source" ? "SOURCE" : node.tone === "alternate" ? "INTERMEDIARY" : "TARGET"}</span><b>{node.connection === "pending" ? "关系已核" : index === nodes.length - 1 ? "列名对象" : "证据可见"}</b></footer>
-      </article>;
+      </div>;
     })}
   </div>;
 }
@@ -545,7 +631,7 @@ function ScreeningModule() {
           </div>
           {hasEvidence && <div className={`chain-risk-note ${isHighConfidence ? "high-confidence" : ""}`}><p>{currentCase.summary}</p><span>{isHighConfidence ? "达到90分排查阈值 · 不等同于违法定性" : "当前为风险线索，尚未形成最终用途闭环。"}</span></div>}
           <div className="chain-canvas">
-            {hasEvidence ? <DraggableChain nodes={currentCase.nodes} /> : <div className="chain-empty-state">
+            {hasEvidence ? <DraggableChain key={currentCase.entityId} nodes={currentCase.nodes} /> : <div className="chain-empty-state">
               <div className="empty-radar"><i /><span /><b /><em>00</em></div>
               <h3>暂未发现替代供应链</h3>
               <p>{currentCase.summary}</p>
@@ -557,7 +643,7 @@ function ScreeningModule() {
         <div className="penetration-ledger-grid">
           <article className="evidence-ledger">
             <header><strong>证据台账</strong><b>{currentCase.evidence.length} 条</b></header>
-            {hasEvidence ? <div>{currentCase.evidence.map((item) => <section key={`${item.category}-${item.title}`}><i /><div><span>{item.category}</span><strong>{item.title}</strong><p>{item.detail}</p>{item.url && <a href={item.url} target="_blank" rel="noreferrer">{item.source || "查看来源"} ↗</a>}</div></section>)}</div> : <div className="ledger-empty">{ledger.map(([title, note]) => <section key={title}><i /><div><strong>{title}</strong><p>{note}</p></div><span>待补证</span></section>)}</div>}
+            {hasEvidence ? <div>{currentCase.evidence.map((item) => <section key={`${item.category}-${item.title}`}><i /><div><span>{item.category}</span><strong>{item.title}</strong><p>{item.detail}</p>{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.source || "查看来源"} ↗</a> : item.source ? <small className="evidence-source">{item.source}</small> : null}</div></section>)}</div> : <div className="ledger-empty">{ledger.map(([title, note]) => <section key={title}><i /><div><strong>{title}</strong><p>{note}</p></div><span>待补证</span></section>)}</div>}
           </article>
           <article className="verification-gaps">
             <header><strong>尚待核实</strong><b>{currentCase.gaps.length}</b></header>
