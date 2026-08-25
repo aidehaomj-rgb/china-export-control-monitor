@@ -398,7 +398,6 @@ function ScreeningModule() {
           <div className="chain-board-head"><strong>替代进口供应链</strong><div><span>{currentCase.nodes.length} 节点</span><span>{Math.max(0, currentCase.nodes.length - 1)} 关系</span><i /></div></div>
           {hasEvidence && <div className="chain-risk-note"><p>{currentCase.summary}</p><span>当前为风险线索，尚未形成最终用途闭环。</span></div>}
           <div className="chain-canvas">
-            <div className="chain-scan" aria-hidden="true" />
             {hasEvidence ? <div className="chain-node-row">
               {currentCase.nodes.map((node, index) => <div className="chain-node-wrap" key={`${node.stage}-${node.name}`}>
                 <article className={`chain-node ${node.tone}`}><span>{node.stage}</span><strong>{node.name}</strong><small>{node.note}</small></article>
