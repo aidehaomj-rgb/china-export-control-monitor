@@ -1,13 +1,14 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import data from "../public/data/control-entities.json";
 
 type View = "home" | "entities" | "notices" | "timeline" | "screening";
 type MenuId = "entities" | "policy" | "research";
 type Entity = (typeof data.entities)[number];
 type ScreeningNode = { stage: string; name: string; note: string; tone: "source" | "subject" | "alternate" | "destination"; connection?: "verified" | "pending"; linkLabel?: string };
+type NodePosition = { x: number; y: number };
 type ScreeningEvidence = { category: string; title: string; detail: string; source?: string; url?: string };
 type ScreeningCase = { entityId: number; finding: string; confidence: string; summary: string; checks: string[]; nodes: ScreeningNode[]; evidence: ScreeningEvidence[]; gaps: string[] };
 
@@ -369,6 +370,136 @@ function TimelineModule() {
   return <div className="module-panel"><div className="timeline-summary"><div><span>政策跨度</span><b>2025—2026</b></div><i /><p>2025年名单机制密集落地，2026年对象范围扩展至日本和欧盟，并强化对原产中国两用物项境外转移的约束。</p></div><div className="timeline-track"><div className="track-line"><i /></div>{notices.map((notice, index) => <article className={`timeline-event reveal ${regionTone[notice.region]} ${index === 0 ? "latest" : ""}`} style={delay(index)} key={notice.notice}><div className="timeline-date"><b>{notice.date.slice(5).replace("-", ".")}</b><span>{notice.date.slice(0, 4)}</span></div><div className="timeline-node"><i /><em /></div><div className="timeline-card"><div className="timeline-card-top"><span className={`tag ${regionTone[notice.region]}`}>{notice.region}</span><small>+{notice.count} ENTITIES</small>{index === 0 && <b>最新</b>}</div><h3>{notice.notice}</h3><p>{index === data.notices.length - 1 ? "出口管制管控名单进入实体化实施阶段。" : "管控范围持续扩围，名单主体及替代交易路径成为合规核查重点。"}</p><a href={notice.url} target="_blank" rel="noreferrer">查看政策原文 <span>↗</span></a></div></article>)}</div></div>;
 }
 
+const makeDefaultNodePositions = (count: number): NodePosition[] => {
+  if (count <= 1) return [{ x: 50, y: 52 }];
+  return Array.from({ length: count }, (_, index) => ({
+    x: 16 + (68 * index) / (count - 1),
+    y: count > 3 ? (index % 2 === 0 ? 44 : 60) : 52,
+  }));
+};
+
+const clampPosition = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+function DraggableChain({ nodes }: { nodes: ScreeningNode[] }) {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ index: number; pointerId: number; startX: number; startY: number; origin: NodePosition } | null>(null);
+  const layoutKey = nodes.map((node) => `${node.stage}:${node.name}`).join("|");
+  const [positions, setPositions] = useState<NodePosition[]>(() => makeDefaultNodePositions(nodes.length));
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 900, height: 430 });
+
+  useEffect(() => {
+    setPositions(makeDefaultNodePositions(nodes.length));
+    setSelectedIndex(null);
+    setDraggingIndex(null);
+    dragRef.current = null;
+  }, [layoutKey, nodes.length]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const updateSize = () => setCanvasSize({ width: canvas.clientWidth, height: canvas.clientHeight });
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+
+  const beginDrag = (event: ReactPointerEvent<HTMLElement>, index: number) => {
+    if (event.button !== 0) return;
+    setSelectedIndex(index);
+    setDraggingIndex(index);
+    dragRef.current = { index, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: positions[index] };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const moveNode = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = dragRef.current;
+    const canvas = canvasRef.current;
+    if (!drag || !canvas || drag.pointerId !== event.pointerId) return;
+    const rect = canvas.getBoundingClientRect();
+    const card = event.currentTarget;
+    const edgeX = (card.offsetWidth / 2 / rect.width) * 100 + 1;
+    const edgeY = (card.offsetHeight / 2 / rect.height) * 100 + 2;
+    const next = {
+      x: clampPosition(drag.origin.x + ((event.clientX - drag.startX) / rect.width) * 100, edgeX, 100 - edgeX),
+      y: clampPosition(drag.origin.y + ((event.clientY - drag.startY) / rect.height) * 100, edgeY, 100 - edgeY),
+    };
+    setPositions((current) => current.map((position, index) => index === drag.index ? next : position));
+  };
+
+  const endDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    dragRef.current = null;
+    setDraggingIndex(null);
+  };
+
+  const nudgeNode = (event: ReactKeyboardEvent<HTMLElement>, index: number) => {
+    const step = event.shiftKey ? 3 : 1.2;
+    const movement: Record<string, NodePosition> = {
+      ArrowLeft: { x: -step, y: 0 }, ArrowRight: { x: step, y: 0 },
+      ArrowUp: { x: 0, y: -step }, ArrowDown: { x: 0, y: step },
+    };
+    const delta = movement[event.key];
+    if (!delta) return;
+    event.preventDefault();
+    setSelectedIndex(index);
+    setPositions((current) => current.map((position, itemIndex) => itemIndex === index ? {
+      x: clampPosition(position.x + delta.x, 12, 88),
+      y: clampPosition(position.y + delta.y, 27, 76),
+    } : position));
+  };
+
+  return <div className="chain-freeform" ref={canvasRef}>
+    <div className="chain-canvas-tools">
+      <span><i />拖动节点调整布局</span>
+      <button type="button" onClick={() => setPositions(makeDefaultNodePositions(nodes.length))}>重置布局</button>
+    </div>
+    {nodes.slice(0, -1).map((node, index) => {
+      const from = positions[index];
+      const to = positions[index + 1];
+      if (!from || !to) return null;
+      const dx = ((to.x - from.x) / 100) * canvasSize.width;
+      const dy = ((to.y - from.y) / 100) * canvasSize.height;
+      const width = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      const pending = node.connection === "pending";
+      return <div key={`link-${node.stage}-${index}`}>
+        <i className={`chain-dynamic-link ${pending ? "pending" : "verified"}`} style={{ left: `${from.x}%`, top: `${from.y}%`, width, transform: `rotate(${angle}deg)` }} />
+        <span className={`chain-dynamic-label ${pending ? "pending" : "verified"}`} style={{ left: `${(from.x + to.x) / 2}%`, top: `${(from.y + to.y) / 2}%` }}>
+          <b>{node.linkLabel || (pending ? "内部流向" : "进口记录")}</b><small>{pending ? "待核" : "已核"}</small>
+        </span>
+      </div>;
+    })}
+    {nodes.map((node, index) => {
+      const position = positions[index] || makeDefaultNodePositions(nodes.length)[index];
+      return <article
+        className={`chain-node chain-draggable-node ${node.tone} ${selectedIndex === index ? "selected" : ""} ${draggingIndex === index ? "dragging" : ""}`}
+        style={{ left: `${position.x}%`, top: `${position.y}%` }}
+        key={`${node.stage}-${node.name}`}
+        role="button"
+        tabIndex={0}
+        aria-pressed={selectedIndex === index}
+        aria-label={`节点 ${index + 1}：${node.name}，可拖动调整位置`}
+        onPointerDown={(event) => beginDrag(event, index)}
+        onPointerMove={moveNode}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onFocus={() => setSelectedIndex(index)}
+        onKeyDown={(event) => nudgeNode(event, index)}
+      >
+        <div className="drag-grip" aria-hidden="true">{Array.from({ length: 6 }, (_, dot) => <i key={dot} />)}</div>
+        <header><b>{String(index + 1).padStart(2, "0")}</b><span>{node.stage}</span><i /></header>
+        <strong>{node.name}</strong><small>{node.note}</small>
+        <footer><span>{node.tone === "source" ? "SOURCE" : node.tone === "alternate" ? "INTERMEDIARY" : "TARGET"}</span><b>{node.connection === "pending" ? "关系已核" : index === nodes.length - 1 ? "列名对象" : "证据可见"}</b></footer>
+      </article>;
+    })}
+  </div>;
+}
+
 function ScreeningModule() {
   const [selectedId, setSelectedId] = useState(screeningEntities[0].id);
   const [entityMenuOpen, setEntityMenuOpen] = useState(false);
@@ -414,16 +545,7 @@ function ScreeningModule() {
           </div>
           {hasEvidence && <div className={`chain-risk-note ${isHighConfidence ? "high-confidence" : ""}`}><p>{currentCase.summary}</p><span>{isHighConfidence ? "达到90分排查阈值 · 不等同于违法定性" : "当前为风险线索，尚未形成最终用途闭环。"}</span></div>}
           <div className="chain-canvas">
-            {hasEvidence ? <div className="chain-node-row">
-              {currentCase.nodes.map((node, index) => <div className="chain-node-wrap" key={`${node.stage}-${node.name}`}>
-                <article className={`chain-node ${node.tone}`}>
-                  <header><b>{String(index + 1).padStart(2, "0")}</b><span>{node.stage}</span><i /></header>
-                  <strong>{node.name}</strong><small>{node.note}</small>
-                  <footer><span>{node.tone === "source" ? "SOURCE" : node.tone === "alternate" ? "INTERMEDIARY" : "TARGET"}</span><b>{node.connection === "pending" ? "关系已核" : index === currentCase.nodes.length - 1 ? "列名对象" : "证据可见"}</b></footer>
-                </article>
-                {index < currentCase.nodes.length - 1 && <div className={`chain-link ${node.connection === "pending" ? "pending" : "verified"}`}><span>{node.linkLabel || (node.connection === "pending" ? "内部流向" : "进口记录")}</span><i /><b>›</b><small>{node.connection === "pending" ? "待核" : "已核"}</small></div>}
-              </div>)}
-            </div> : <div className="chain-empty-state">
+            {hasEvidence ? <DraggableChain nodes={currentCase.nodes} /> : <div className="chain-empty-state">
               <div className="empty-radar"><i /><span /><b /><em>00</em></div>
               <h3>暂未发现替代供应链</h3>
               <p>{currentCase.summary}</p>
