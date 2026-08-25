@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import data from "../public/data/control-entities.json";
 
-type View = "home" | "entities" | "notices" | "timeline" | "screening" | "method";
+type View = "home" | "entities" | "notices" | "timeline" | "screening";
 type MenuId = "entities" | "policy" | "research";
 type Entity = (typeof data.entities)[number];
 type ScreeningNode = { stage: string; name: string; note: string; tone: "source" | "subject" | "alternate" | "destination"; connection?: "verified" | "pending" };
@@ -130,10 +130,9 @@ const menuGroups: Array<{
     id: "research",
     label: "穿透研判",
     eyebrow: "TRADE PENETRATION",
-    views: ["screening", "method"],
+    views: ["screening"],
     items: [
       { view: "screening", label: "替代进口排查", note: "管控后交易延续线索" },
-      { view: "method", label: "关联穿透方法", note: "集团、主体与贸易路径" },
     ],
   },
 ];
@@ -254,8 +253,7 @@ export default function Home() {
           )}
           {activeView === "notices" && <NoticeModule />}
           {activeView === "timeline" && <TimelineModule />}
-          {activeView === "screening" && <ScreeningModule onSelect={selectView} />}
-          {activeView === "method" && <MethodModule onSelect={selectView} />}
+          {activeView === "screening" && <ScreeningModule />}
         </section>
       )}
 
@@ -360,12 +358,10 @@ function TimelineModule() {
   return <div className="module-panel"><div className="timeline-summary"><div><span>政策跨度</span><b>2025—2026</b></div><i /><p>2025年名单机制密集落地，2026年对象范围扩展至日本和欧盟，并强化对原产中国两用物项境外转移的约束。</p></div><div className="timeline-track"><div className="track-line"><i /></div>{notices.map((notice, index) => <article className={`timeline-event reveal ${regionTone[notice.region]} ${index === 0 ? "latest" : ""}`} style={delay(index)} key={notice.notice}><div className="timeline-date"><b>{notice.date.slice(5).replace("-", ".")}</b><span>{notice.date.slice(0, 4)}</span></div><div className="timeline-node"><i /><em /></div><div className="timeline-card"><div className="timeline-card-top"><span className={`tag ${regionTone[notice.region]}`}>{notice.region}</span><small>+{notice.count} ENTITIES</small>{index === 0 && <b>最新</b>}</div><h3>{notice.notice}</h3><p>{index === data.notices.length - 1 ? "出口管制管控名单进入实体化实施阶段。" : "管控范围持续扩围，名单主体及替代交易路径成为合规核查重点。"}</p><a href={notice.url} target="_blank" rel="noreferrer">查看政策原文 <span>↗</span></a></div></article>)}</div></div>;
 }
 
-function ScreeningModule({ onSelect }: { onSelect: (view: View) => void }) {
+function ScreeningModule() {
   const [selectedId, setSelectedId] = useState(screeningEntities[0].id);
-  const [entityQuery, setEntityQuery] = useState("");
   const entity = screeningEntities.find((item) => item.id === selectedId) || screeningEntities[0];
   const currentCase = screeningCases.find((item) => item.entityId === entity.id) || screeningCases[0];
-  const matchingEntities = screeningEntities.filter((item) => `${item.nameCn} ${item.nameEn}`.toLowerCase().includes(entityQuery.trim().toLowerCase()));
   const hasEvidence = currentCase.nodes.length > 0 && currentCase.evidence.length > 0;
   const ledger = [
     ["关系证据", "集团控制、关联公司或代理关系"],
@@ -375,39 +371,18 @@ function ScreeningModule({ onSelect }: { onSelect: (view: View) => void }) {
 
   return <div className="module-panel penetration-workspace">
     <div className="penetration-toolbar">
-      <label className="penetration-search"><span>⌕</span><input value={entityQuery} onChange={(event) => setEntityQuery(event.target.value)} placeholder="筛选编号 1—5 的企业实体" /></label>
-      <select aria-label="选择管制企业" value={selectedId} onChange={(event) => setSelectedId(Number(event.target.value))}>{screeningEntities.map((item) => <option value={item.id} key={item.id}>{String(item.id).padStart(3, "0")} · {item.nameCn}</option>)}</select>
-      <button className="penetration-method" onClick={() => onSelect("method")}>穿透方法 <span>↗</span></button>
+      <label className="entity-combobox"><span>选择管制企业</span><select aria-label="选择管制企业" value={selectedId} onChange={(event) => setSelectedId(Number(event.target.value))}>{screeningEntities.map((item) => <option value={item.id} key={item.id}>{String(item.id).padStart(3, "0")} · {item.nameCn} · {item.nameEn}</option>)}</select></label>
     </div>
 
-    <div className="penetration-kpis" aria-label="当前实体研判概览">
-      <article><span>当前实体</span><strong>{String(entity.id).padStart(3, "0")}</strong><small>{entity.region} · {entity.entityType}</small></article>
-      <article className={hasEvidence ? "positive" : "pending"}><span>替代进口研判</span><strong>{currentCase.finding}</strong><small>仅展示有证据指向的路径</small></article>
-      <article><span>可核验证据</span><strong>{currentCase.evidence.length}</strong><small>关系 × 交易 × 时间</small></article>
-      <article><span>研判置信度</span><strong>{hasEvidence ? currentCase.confidence : "—"}</strong><small>{hasEvidence ? "评分反映证据完整度" : "无证据不作推断"}</small></article>
-    </div>
-
-    <div className="penetration-layout">
-      <aside className="entity-picker-panel">
-        <header><div><span>ENTITY SELECTOR</span><strong>管制企业筛选</strong></div><small>{matchingEntities.length} / 5</small></header>
-        <div className="entity-picker-list">
-          {matchingEntities.map((item, index) => <button className={item.id === entity.id ? "active" : ""} onClick={() => setSelectedId(item.id)} key={item.id} style={delay(index)}>
-            <b>{String(item.id).padStart(3, "0")}</b><span><strong>{item.nameCn}</strong><small>{item.nameEn}</small></span><i>{item.id === entity.id ? "●" : "↗"}</i>
-          </button>)}
-          {!matchingEntities.length && <div className="entity-picker-empty">未找到匹配实体</div>}
-        </div>
-        <p><i />当前原型范围：官方清单编号 1—5</p>
-      </aside>
-
-      <section className="penetration-case-panel">
+    <section className="penetration-case-panel">
         <header className="case-heading">
-          <div><span>SELECTED ENTITY · {String(entity.id).padStart(3, "0")}</span><h2>{entity.nameCn}</h2><p>{entity.nameEn}</p></div>
-          <div className="case-heading-meta"><span>{entity.notice}</span><time>{entity.effectiveDate}</time><a href={entity.sourceUrl} target="_blank" rel="noreferrer">官方公告 ↗</a></div>
+          <div><span>管制实体 {String(entity.id).padStart(3, "0")}</span><h2>{entity.nameCn}</h2><p>{entity.nameEn}</p></div>
+          <div className="case-heading-meta"><strong className={hasEvidence ? "positive" : "pending"}>{currentCase.finding}</strong>{hasEvidence && <b>{currentCase.confidence}</b>}<small>{entity.notice} · {entity.effectiveDate}</small><a href={entity.sourceUrl} target="_blank" rel="noreferrer">官方公告 ↗</a></div>
         </header>
 
         <div className={`chain-evidence-board ${hasEvidence ? "has-evidence" : "is-empty"}`}>
-          <div className="chain-board-head"><div><span>SUPPLY CHAIN MAP</span><strong>替代进口供应链</strong></div><div><span>{currentCase.nodes.length} 节点</span><span>{Math.max(0, currentCase.nodes.length - 1)} 关系</span><i /></div></div>
-          {hasEvidence && <div className="chain-risk-note"><b>{currentCase.confidence}</b><p>{currentCase.summary}</p><span>评分用于确定核查优先级，不代表规避行为已经发生。</span></div>}
+          <div className="chain-board-head"><strong>替代进口供应链</strong><div><span>{currentCase.nodes.length} 节点</span><span>{Math.max(0, currentCase.nodes.length - 1)} 关系</span><i /></div></div>
+          {hasEvidence && <div className="chain-risk-note"><p>{currentCase.summary}</p><span>当前为风险线索，尚未形成最终用途闭环。</span></div>}
           <div className="chain-canvas">
             <div className="chain-scan" aria-hidden="true" />
             {hasEvidence ? <div className="chain-node-row">
@@ -417,7 +392,7 @@ function ScreeningModule({ onSelect }: { onSelect: (view: View) => void }) {
               </div>)}
             </div> : <div className="chain-empty-state">
               <div className="empty-radar"><i /><span /><b /></div>
-              <small>NO VERIFIED PATH</small><h3>暂未发现替代供应链</h3>
+              <h3>暂未发现替代供应链</h3>
               <p>{currentCase.summary}</p>
               <ul>{currentCase.checks.map((item) => <li key={item}><i />{item}</li>)}</ul>
             </div>}
@@ -426,27 +401,15 @@ function ScreeningModule({ onSelect }: { onSelect: (view: View) => void }) {
 
         <div className="penetration-ledger-grid">
           <article className="evidence-ledger">
-            <header><div><span>EVIDENCE LEDGER</span><strong>证据台账</strong></div><b>{currentCase.evidence.length} 条</b></header>
+            <header><strong>证据台账</strong><b>{currentCase.evidence.length} 条</b></header>
             {hasEvidence ? <div>{currentCase.evidence.map((item) => <section key={`${item.category}-${item.title}`}><i /><div><span>{item.category}</span><strong>{item.title}</strong><p>{item.detail}</p>{item.url && <a href={item.url} target="_blank" rel="noreferrer">{item.source || "查看来源"} ↗</a>}</div></section>)}</div> : <div className="ledger-empty">{ledger.map(([title, note]) => <section key={title}><i /><div><strong>{title}</strong><p>{note}</p></div><span>待补证</span></section>)}</div>}
           </article>
           <article className="verification-gaps">
-            <header><div><span>VERIFICATION GAPS</span><strong>尚待核实</strong></div><b>{currentCase.gaps.length}</b></header>
+            <header><strong>尚待核实</strong><b>{currentCase.gaps.length}</b></header>
             <p>{hasEvidence ? "当前链路仅用于风险排序；在内部流向闭合前，不认定为已证实替代进口。" : "“暂未发现”仅表示当前证据库未形成可报告链路，不等同于不存在相关交易。"}</p>
             <ol>{currentCase.gaps.map((gap, index) => <li key={gap}><span>{String(index + 1).padStart(2, "0")}</span>{gap}</li>)}</ol>
           </article>
         </div>
       </section>
-    </div>
   </div>;
-}
-
-function MethodModule({ onSelect }: { onSelect: (view: View) => void }) {
-  const layers = [
-    { id: "L1", title: "官方名单层", note: "以商务部公告中的法定名称为起点，建立实体唯一标识。" },
-    { id: "L2", title: "集团控制层", note: "识别母公司、子公司、品牌、业务部门及实际控制关系。" },
-    { id: "L3", title: "贸易主体层", note: "关联进口商、收货人、通知方、代理商与同址企业。" },
-    { id: "L4", title: "交易延续层", note: "比较管控前后商品、供应商、港口、频次和数量变化。" },
-    { id: "L5", title: "证据评估层", note: "区分直接证据、强线索与待核线索，保留来源和时间戳。" },
-  ];
-  return <div className="module-panel method-layout"><div className="method-rail">{layers.map((layer, index) => <article className="reveal" style={delay(index)} key={layer.id}><span>{layer.id}</span><i /><div><h3>{layer.title}</h3><p>{layer.note}</p></div></article>)}</div><aside className="method-aside"><span>TDK-STYLE LOGIC</span><h2>以集团逻辑为骨架，避免只看列名主体</h2><p>核心不是把名称相近的公司直接判定为替代路径，而是让控制关系与连续交易特征相互印证。</p><div><small>最小证据组合</small><strong>关系证据 × 交易证据 × 时间证据</strong></div><button onClick={() => onSelect("screening")}>进入替代进口排查 <span>↗</span></button></aside></div>;
 }
