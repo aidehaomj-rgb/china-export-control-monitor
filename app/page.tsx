@@ -7,7 +7,7 @@ import data from "../public/data/control-entities.json";
 type View = "home" | "entities" | "notices" | "timeline" | "screening";
 type MenuId = "entities" | "policy" | "research";
 type Entity = (typeof data.entities)[number];
-type ScreeningNode = { stage: string; name: string; note: string; tone: "source" | "subject" | "alternate" | "destination"; connection?: "verified" | "pending" };
+type ScreeningNode = { stage: string; name: string; note: string; tone: "source" | "subject" | "alternate" | "destination"; connection?: "verified" | "pending"; linkLabel?: string };
 type ScreeningEvidence = { category: string; title: string; detail: string; source?: string; url?: string };
 type ScreeningCase = { entityId: number; finding: string; confidence: string; summary: string; checks: string[]; nodes: ScreeningNode[]; evidence: ScreeningEvidence[]; gaps: string[] };
 
@@ -46,12 +46,23 @@ const screeningCases: ScreeningCase[] = [
   },
   {
     entityId: 2,
-    finding: "暂未发现替代供应链",
-    confidence: "—",
-    summary: "发现一条台湾供应商向列名主体交付军用方舱发电机/安装套件的单腿记录，但没有证据证明货物来自中国大陆或经替代主体转入。",
-    checks: ["L3Harris Technologies 精确采购商名称", "Aerojet Rocketdyne 核心子公司", "中国原产条件及台湾 Champion Auto 单腿记录"],
-    nodes: [], evidence: [],
-    gaps: ["Champion Auto 上游零部件原产地", "提单、批号与生产商字段", "中国大陆供应商或中转主体证据"],
+    finding: "高风险替代供应链",
+    confidence: "A级 · 95分",
+    summary: "列管后，香港 Fabricators International Ltd 至少三次向 L3Harris 交付车载充电器；制造资料将该供应体系的生产厂明确落到广东东莞，已形成“中国制造—香港承接—列名实体收货”的高风险证据链。",
+    checks: ["L3Harris Technologies 精确采购商名称", "Fabricators International 香港主体与东莞制造端映射", "管控后提单日期、货描与收货地址", "L3Harris 官方同名产品用途"],
+    nodes: [
+      { stage: "中国制造端", name: "ICC Electronics (Dongguan) Ltd.", note: "Fabricators International 制造体系；广东东莞工厂", tone: "source", connection: "verified", linkLabel: "制造映射" },
+      { stage: "境外承接主体", name: "Fabricators International Ltd.", note: "香港发货主体；车载充电器出口商", tone: "alternate", connection: "verified", linkLabel: "管控后发运" },
+      { stage: "列名收货实体", name: "L3Harris Technologies Inc.", note: "美国收货人；2025-01-02起列入管控名单", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "L3Harris自2025年1月2日起列入管控名单", detail: "商务部公告2025年第1号将L3哈里斯公司列入出口管制管控名单，相关出口活动应当立即停止；特殊情况需申请许可。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zcfb/dwmygl/art/2025/art_c14d6b7d45e247c596f4d3ecdda9b291.html" },
+      { category: "制造关系", title: "香港出口主体对应东莞制造体系", detail: "制造与检测资料将ICC Electronics (Dongguan) Ltd.与Fabricators International Ltd.并列标识为制造方/工厂，地址位于广东省东莞市清溪镇。", source: "制造商UN38.3资料", url: "https://www.netapp.com/media/65934-DocPack-310-00251-D2-271-00029.pdf" },
+      { category: "交易证据", title: "管控后至少3票车载充电器到货", detail: "公开提单显示：2025-06-30为84箱、2025-11-18为83箱/757千克、2025-12-23为42箱/381千克；发货人均为香港Fabricators，收货人均为L3Harris。", source: "ImportGenius · 美国海关记录", url: "https://www.importgenius.com/importers/l3harris-technologies-inc" },
+      { category: "产品匹配", title: "货描与L3Harris官方通信产品一致", detail: "提单货描为VEHICULAR CHARGER；L3Harris官网将Premium Vehicular Charger列为XL系列任务通信电台配套充电设备。", source: "L3Harris 官方产品页", url: "https://www.l3harris.com/all-capabilities/xl-two-bay-portable-radio-charger" },
+      { category: "综合评分", title: "证据闭环评分：95/100", detail: "列管身份15/15、中国制造端20/25、境外主体承接20/20、管控后交易25/25、产品与终端用途匹配15/15。扣分项为三票货物的原产地证明尚未取得。" },
+    ],
+    gaps: ["取得商业发票、原产地证或生产批号，确认三票货物由东莞工厂实际生产", "核对提单采购订单及L3Harris料号，闭合具体型号对应关系", "按中国两用物项清单核定车载充电器及其部件的管制编码与许可证状态"],
   },
   {
     entityId: 3,
@@ -364,6 +375,8 @@ function ScreeningModule() {
   const entity = screeningEntities.find((item) => item.id === selectedId) || screeningEntities[0];
   const currentCase = screeningCases.find((item) => item.entityId === entity.id) || screeningCases[0];
   const hasEvidence = currentCase.nodes.length > 0 && currentCase.evidence.length > 0;
+  const score = Number(currentCase.confidence.match(/(\d+)分/)?.[1] || 0);
+  const isHighConfidence = score >= 90;
   const ledger = [
     ["关系证据", "集团控制、关联公司或代理关系"],
     ["交易证据", "进口商、商品、供应商与运输记录"],
@@ -397,18 +410,18 @@ function ScreeningModule() {
         <div className={`chain-evidence-board ${hasEvidence ? "has-evidence" : "is-empty"}`}>
           <div className="chain-board-head">
             <div><strong>替代进口供应链</strong><span>SUPPLY CHAIN TRACE</span></div>
-            <div className="chain-board-meta"><span>{currentCase.nodes.length} 节点</span><span>{Math.max(0, currentCase.nodes.length - 1)} 关系</span><b className={hasEvidence ? "signal-on" : "signal-off"}>{hasEvidence ? "线索链路" : "未形成链路"}</b></div>
+            <div className="chain-board-meta"><span>{currentCase.nodes.length} 节点</span><span>{Math.max(0, currentCase.nodes.length - 1)} 关系</span><b className={hasEvidence ? "signal-on" : "signal-off"}>{isHighConfidence ? "高风险闭环" : hasEvidence ? "线索链路" : "未形成链路"}</b></div>
           </div>
-          {hasEvidence && <div className="chain-risk-note"><p>{currentCase.summary}</p><span>当前为风险线索，尚未形成最终用途闭环。</span></div>}
+          {hasEvidence && <div className={`chain-risk-note ${isHighConfidence ? "high-confidence" : ""}`}><p>{currentCase.summary}</p><span>{isHighConfidence ? "达到90分排查阈值 · 不等同于违法定性" : "当前为风险线索，尚未形成最终用途闭环。"}</span></div>}
           <div className="chain-canvas">
             {hasEvidence ? <div className="chain-node-row">
               {currentCase.nodes.map((node, index) => <div className="chain-node-wrap" key={`${node.stage}-${node.name}`}>
                 <article className={`chain-node ${node.tone}`}>
                   <header><b>{String(index + 1).padStart(2, "0")}</b><span>{node.stage}</span><i /></header>
                   <strong>{node.name}</strong><small>{node.note}</small>
-                  <footer><span>{node.tone === "source" ? "SOURCE" : node.tone === "alternate" ? "IMPORTER" : "TARGET"}</span><b>{node.connection === "pending" ? "关系已核" : index === currentCase.nodes.length - 1 ? "列名对象" : "交易可见"}</b></footer>
+                  <footer><span>{node.tone === "source" ? "SOURCE" : node.tone === "alternate" ? "INTERMEDIARY" : "TARGET"}</span><b>{node.connection === "pending" ? "关系已核" : index === currentCase.nodes.length - 1 ? "列名对象" : "证据可见"}</b></footer>
                 </article>
-                {index < currentCase.nodes.length - 1 && <div className={`chain-link ${node.connection === "pending" ? "pending" : "verified"}`}><span>{node.connection === "pending" ? "内部流向" : "进口记录"}</span><i /><b>›</b><small>{node.connection === "pending" ? "待核" : "已核"}</small></div>}
+                {index < currentCase.nodes.length - 1 && <div className={`chain-link ${node.connection === "pending" ? "pending" : "verified"}`}><span>{node.linkLabel || (node.connection === "pending" ? "内部流向" : "进口记录")}</span><i /><b>›</b><small>{node.connection === "pending" ? "待核" : "已核"}</small></div>}
               </div>)}
             </div> : <div className="chain-empty-state">
               <div className="empty-radar"><i /><span /><b /><em>00</em></div>
@@ -426,7 +439,7 @@ function ScreeningModule() {
           </article>
           <article className="verification-gaps">
             <header><strong>尚待核实</strong><b>{currentCase.gaps.length}</b></header>
-            <p>{hasEvidence ? "当前链路仅用于风险排序；在内部流向闭合前，不认定为已证实替代进口。" : "“暂未发现”仅表示当前证据库未形成可报告链路，不等同于不存在相关交易。"}</p>
+            <p>{isHighConfidence ? "当前链路已达到高风险排查阈值；是否构成违规仍取决于物项归类、原产地证明与许可证状态。" : hasEvidence ? "当前链路仅用于风险排序；在内部流向闭合前，不认定为已证实替代进口。" : "“暂未发现”仅表示当前证据库未形成可报告链路，不等同于不存在相关交易。"}</p>
             <ol>{currentCase.gaps.map((gap, index) => <li key={gap}><span>{String(index + 1).padStart(2, "0")}</span>{gap}</li>)}</ol>
           </article>
         </div>
