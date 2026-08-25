@@ -360,6 +360,7 @@ function TimelineModule() {
 
 function ScreeningModule() {
   const [selectedId, setSelectedId] = useState(screeningEntities[0].id);
+  const [entityMenuOpen, setEntityMenuOpen] = useState(false);
   const entity = screeningEntities.find((item) => item.id === selectedId) || screeningEntities[0];
   const currentCase = screeningCases.find((item) => item.entityId === entity.id) || screeningCases[0];
   const hasEvidence = currentCase.nodes.length > 0 && currentCase.evidence.length > 0;
@@ -371,7 +372,20 @@ function ScreeningModule() {
 
   return <div className="module-panel penetration-workspace">
     <div className="penetration-toolbar">
-      <label className="entity-combobox"><span>选择管制企业</span><select aria-label="选择管制企业" value={selectedId} onChange={(event) => setSelectedId(Number(event.target.value))}>{screeningEntities.map((item) => <option value={item.id} key={item.id}>{String(item.id).padStart(3, "0")} · {item.nameCn} · {item.nameEn}</option>)}</select></label>
+      <div className={`entity-combobox ${entityMenuOpen ? "open" : ""}`}>
+        <span>选择管制企业</span>
+        <button className="entity-select-trigger" aria-haspopup="listbox" aria-expanded={entityMenuOpen} onClick={() => setEntityMenuOpen((open) => !open)}>
+          <span><b>{String(entity.id).padStart(3, "0")} · {entity.nameCn}</b><small>{entity.nameEn}</small></span><i>⌄</i>
+        </button>
+        {entityMenuOpen && <>
+          <button className="entity-dropdown-scrim" aria-label="关闭企业筛选" onClick={() => setEntityMenuOpen(false)} />
+          <div className="entity-card-dropdown" role="listbox" aria-label="管制企业卡片筛选">
+            {screeningEntities.map((item, index) => <button role="option" aria-selected={item.id === entity.id} className={`entity-filter-card ${item.id === entity.id ? "active" : ""}`} style={delay(index)} onClick={() => { setSelectedId(item.id); setEntityMenuOpen(false); }} key={item.id}>
+              <b>{String(item.id).padStart(3, "0")}</b><span><strong>{item.nameCn}</strong><small>{item.nameEn}</small><em>{item.region} · {item.entityType}</em></span><i>{item.id === entity.id ? "●" : "↗"}</i>
+            </button>)}
+          </div>
+        </>}
+      </div>
     </div>
 
     <section className="penetration-case-panel">
