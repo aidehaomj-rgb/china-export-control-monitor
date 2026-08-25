@@ -197,6 +197,9 @@ const screeningCases: ScreeningCase[] = [
     gaps: ["取得MKA物料清单和批次对应关系", "核对中国进口件是否用于Cubic订单", "取得采购订单、发票、原产地证及提单号"],
   },
 ];
+const screeningScoreByEntity = new Map(
+  screeningCases.map((item) => [item.entityId, Number(item.confidence.match(/(\d+)分/)?.[1] || 0)]),
+);
 const delay = (index: number) => ({ "--delay": `${Math.min(index * 70, 560)}ms` } as CSSProperties);
 const regionStopOne = regionData[0].share;
 const regionStopTwo = regionStopOne + regionData[1].share;
@@ -569,7 +572,7 @@ function DraggableChain({ nodes }: { nodes: ScreeningNode[] }) {
         role="button"
         tabIndex={0}
         aria-pressed={selectedIndex === index}
-        aria-label={`节点 ${index + 1}：${node.name}，可拖动调整位置`}
+        aria-label={`${node.name}，可拖动调整位置`}
         onPointerDown={(event) => beginDrag(event, index)}
         onPointerMove={moveNode}
         onPointerUp={endDrag}
@@ -578,7 +581,7 @@ function DraggableChain({ nodes }: { nodes: ScreeningNode[] }) {
         onKeyDown={(event) => nudgeNode(event, index)}
       >
         <div className="drag-grip" aria-hidden="true">{Array.from({ length: 6 }, (_, dot) => <i key={dot} />)}</div>
-        <header><b>{String(index + 1).padStart(2, "0")}</b><span>{node.stage}</span><i /></header>
+        <header><span>{node.stage}</span><i /></header>
         <strong>{node.name}</strong><small>{node.note}</small>
         <footer><span>{node.tone === "source" ? "SOURCE" : node.tone === "alternate" ? "INTERMEDIARY" : "TARGET"}</span><b>{node.connection === "pending" ? "关系已核" : index === nodes.length - 1 ? "列名对象" : "证据可见"}</b></footer>
       </div>;
@@ -592,7 +595,7 @@ function ScreeningModule() {
   const entity = screeningEntities.find((item) => item.id === selectedId) || screeningEntities[0];
   const currentCase = screeningCases.find((item) => item.entityId === entity.id) || screeningCases[0];
   const hasEvidence = currentCase.nodes.length > 0 && currentCase.evidence.length > 0;
-  const score = Number(currentCase.confidence.match(/(\d+)分/)?.[1] || 0);
+  const score = screeningScoreByEntity.get(entity.id) || 0;
   const isHighConfidence = score >= 90;
   const ledger = [
     ["关系证据", "集团控制、关联公司或代理关系"],
@@ -605,14 +608,17 @@ function ScreeningModule() {
       <div className={`entity-combobox ${entityMenuOpen ? "open" : ""}`}>
         <span>选择管制企业</span>
         <button className="entity-select-trigger" aria-haspopup="listbox" aria-expanded={entityMenuOpen} onClick={() => setEntityMenuOpen((open) => !open)}>
-          <span><b>{String(entity.id).padStart(3, "0")} · {entity.nameCn}</b><small>{entity.nameEn}</small></span><i>⌄</i>
+          <span><b>{entity.nameCn}</b><small>{entity.nameEn}</small></span><em className={score >= 90 ? "high" : score > 0 ? "rated" : "empty"}>{score}分</em><i>⌄</i>
         </button>
         {entityMenuOpen && <>
           <button className="entity-dropdown-scrim" aria-label="关闭企业筛选" onClick={() => setEntityMenuOpen(false)} />
           <div className="entity-card-dropdown" role="listbox" aria-label="管制企业卡片筛选">
-            {screeningEntities.map((item, index) => <button role="option" aria-selected={item.id === entity.id} className={`entity-filter-card ${item.id === entity.id ? "active" : ""}`} style={delay(index)} onClick={() => { setSelectedId(item.id); setEntityMenuOpen(false); }} key={item.id}>
-              <b>{String(item.id).padStart(3, "0")}</b><span><strong>{item.nameCn}</strong><small>{item.nameEn}</small><em>{item.region} · {item.entityType}</em></span><i>{item.id === entity.id ? "●" : "↗"}</i>
-            </button>)}
+            {screeningEntities.map((item, index) => {
+              const itemScore = screeningScoreByEntity.get(item.id) || 0;
+              return <button role="option" aria-selected={item.id === entity.id} className={`entity-filter-card ${item.id === entity.id ? "active" : ""}`} style={delay(index)} onClick={() => { setSelectedId(item.id); setEntityMenuOpen(false); }} key={item.id}>
+                <span><strong>{item.nameCn}</strong><small>{item.nameEn}</small><em>{item.region} · {item.entityType}</em></span><span className={`entity-score ${itemScore >= 90 ? "high" : itemScore > 0 ? "rated" : "empty"}`}>{itemScore}分</span><i>{item.id === entity.id ? "●" : "↗"}</i>
+              </button>;
+            })}
           </div>
         </>}
       </div>
@@ -620,7 +626,7 @@ function ScreeningModule() {
 
     <section className="penetration-case-panel">
         <header className="case-heading">
-          <div><span>管制实体 {String(entity.id).padStart(3, "0")}</span><h2>{entity.nameCn}</h2><p>{entity.nameEn}</p></div>
+          <div><span>替代进口排查</span><h2>{entity.nameCn}</h2><p>{entity.nameEn}</p></div>
           <div className="case-heading-meta"><strong className={hasEvidence ? "positive" : "pending"}>{currentCase.finding}</strong>{hasEvidence && <b>{currentCase.confidence}</b>}<small>{entity.notice} · {entity.effectiveDate}</small><a href={entity.sourceUrl} target="_blank" rel="noreferrer">官方公告 ↗</a></div>
         </header>
 
@@ -632,7 +638,7 @@ function ScreeningModule() {
           {hasEvidence && <div className={`chain-risk-note ${isHighConfidence ? "high-confidence" : ""}`}><p>{currentCase.summary}</p><span>{isHighConfidence ? "达到90分排查阈值 · 不等同于违法定性" : "当前为风险线索，尚未形成最终用途闭环。"}</span></div>}
           <div className="chain-canvas">
             {hasEvidence ? <DraggableChain key={currentCase.entityId} nodes={currentCase.nodes} /> : <div className="chain-empty-state">
-              <div className="empty-radar"><i /><span /><b /><em>00</em></div>
+              <div className="empty-radar"><i /><span /><b /></div>
               <h3>暂未发现替代供应链</h3>
               <p>{currentCase.summary}</p>
               <ul>{currentCase.checks.map((item) => <li key={item}><i />{item}</li>)}</ul>
@@ -648,7 +654,7 @@ function ScreeningModule() {
           <article className="verification-gaps">
             <header><strong>尚待核实</strong><b>{currentCase.gaps.length}</b></header>
             <p>{isHighConfidence ? "当前链路已达到高风险排查阈值；是否构成违规仍取决于物项归类、原产地证明与许可证状态。" : hasEvidence ? "当前链路仅用于风险排序；在内部流向闭合前，不认定为已证实替代进口。" : "“暂未发现”仅表示当前证据库未形成可报告链路，不等同于不存在相关交易。"}</p>
-            <ol>{currentCase.gaps.map((gap, index) => <li key={gap}><span>{String(index + 1).padStart(2, "0")}</span>{gap}</li>)}</ol>
+            <ol>{currentCase.gaps.map((gap) => <li key={gap}><i />{gap}</li>)}</ol>
           </article>
         </div>
       </section>
