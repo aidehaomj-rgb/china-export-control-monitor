@@ -78,10 +78,10 @@ const screeningEntities = regulatoryEntities.filter((item) => screeningEntityIds
 const screeningCases: ScreeningCase[] = [
   {
     entityId: 1,
-    finding: "高风险供应链",
-    confidence: "A级 · 100分",
-    summary: "易迅数据显示，列管后General Dynamics旗下NASSCO持续接收中国供应商的船用阀门与控制舱舷梯部件；官方资料将NASSCO明确列为General Dynamics海事系统业务单元，已形成“境内供货—集团业务单元收货—列名母公司”的证据闭环。",
-    checks: ["General Dynamics / NASSCO法定名称与集团关系", "2024-08-20至2026-08-20两年数据", "中国原产筛选与206条基准结果", "货描、日期、重量和收货主体"],
+    finding: "单腿异常 · 关联主体",
+    confidence: "B级 · 80分",
+    summary: "列管后，General Dynamics旗下NASSCO继续接收中国供应商的船用阀门与控制舱舷梯部件，集团关系与中国来源记录均已确认；但尚未建立管控前同类货物直供基线，也未发现经独立中间实体转供的第二腿，因此按新标准降为80分。",
+    checks: ["General Dynamics / NASSCO法定名称与集团关系", "2024-08-20至2026-08-20两年数据", "中国原产筛选与206条基准结果", "管控前同类货物基线与路径切换"],
     nodes: [
       { stage: "中国供应端", name: "Neway Valve (Suzhou) / Ningbo Sup Bearing", note: "苏州阀门与宁波船舶结构件供应节点", tone: "source", connection: "verified", linkLabel: "中国原产" },
       { stage: "集团收货单元", name: "General Dynamics NASSCO", note: "General Dynamics海事系统业务单元", tone: "alternate", connection: "verified", linkLabel: "管控后进口" },
@@ -92,9 +92,9 @@ const screeningCases: ScreeningCase[] = [
       { category: "关系证据", title: "NASSCO属于General Dynamics海事系统", detail: "General Dynamics官网将NASSCO列为Marine Systems业务单元，并说明其承担辅助舰、支援舰和船舶维修业务。", source: "General Dynamics 官方业务页", url: "https://www.gd.com/our-businesses/marine-systems" },
       { category: "易迅验证", title: "206条基准结果中筛得3条中国来源记录", detail: "查询条件：采购商GENERAL DYNAMICS NASSCO，时间2024-08-20至2026-08-20；中国来源结果包括2025-07-07控制舱舷梯部件，以及2026-08-15苏州Neway船用阀门。", source: "易迅数据 · 美国进口记录 · 2026-08-25核验" },
       { category: "交易证据", title: "列管后中国船舶部件直接进入NASSCO", detail: "2025-07-07，Ningbo Sup Bearing向NASSCO交付CONTROL HOUSE COMPANIONWAY/STAIRWAY，5件、2,095千克；2026-08-15，Neway Valve (Suzhou)交付阀门，合计35件、23,154千克。", source: "易迅数据 · 中国原产筛选" },
-      { category: "综合评分", title: "证据闭环评分：100/100", detail: "列管身份15/15、集团关系20/20、中国来源25/25、管控后交易25/25、船舶产品匹配15/15。评分仅用于风险排序，不构成违规认定。" },
+      { category: "综合评分", title: "关联主体单腿评分：80/100", detail: "列管身份15/15、集团关系20/20、中国来源20/25、管控后交易20/20、管控前基线及路径切换5/20。现有证据说明列管后关联业务单元继续进口，但尚未达到90分双腿闭环阈值。" },
     ],
-    gaps: ["取得原始提单号、商业发票与原产地证", "核对阀门及结构件对应的具体舰船项目", "核验相关物项编码与许可证状态"],
+    gaps: ["补齐列管前同类阀门及结构件的直接进口基线", "取得原始提单号、商业发票与原产地证", "核对具体舰船项目、物项编码与许可证状态"],
   },
   {
     entityId: 2,
@@ -157,10 +157,10 @@ const screeningCases: ScreeningCase[] = [
   },
   {
     entityId: 29,
-    finding: "高风险替代供应链",
-    confidence: "A级 · 100分",
-    summary: "列管后，Leidos的安检设备子公司继续从天津、昆山和苏州接收CT机架、X光机组件及安检设备部件；易迅实际采购商名称存在AUTOMAT ION断词，反向供应商检索后形成完整证据链。",
-    checks: ["LEIDOS与法定子公司名称双口径", "易迅实际断词AUTOMAT ION补查", "天津Schleifring供应商反向检索", "2025-03-04列管日前后日期与产品核验"],
+    finding: "高风险延续链 · 待补基线",
+    confidence: "B级 · 88分",
+    summary: "列管后，Leidos安检设备子公司继续从天津接收CT机架，列名身份、子公司关系、中国来源和管控后交易均较清晰；但现有材料尚未逐票证明管控前记录也是同一供应商、同一货物，也没有独立中间实体构成完整双腿路径，因此按新标准调整为88分。",
+    checks: ["LEIDOS与法定子公司名称双口径", "易迅实际断词AUTOMAT ION补查", "天津Schleifring供应商反向检索", "管控前8条记录的供应商与货物逐票匹配"],
     nodes: [
       { stage: "中国供应端", name: "Schleifring Tianjin / Sanmina Kunshan / Suzhou Shijia", note: "CT机架、X光机与安检设备组件", tone: "source", connection: "verified", linkLabel: "中国原产" },
       { stage: "集团进口主体", name: "Leidos Security Detection & Automation, Inc.", note: "Leidos安检设备子公司；美国收货人", tone: "alternate", connection: "verified", linkLabel: "管控后进口" },
@@ -171,9 +171,9 @@ const screeningCases: ScreeningCase[] = [
       { category: "关系证据", title: "进口主体是Leidos列示子公司", detail: "Leidos 2026年SEC Exhibit 21继续列示Leidos Security Detection & Automation, Inc.为集团子公司。", source: "Leidos 2026 Form 10-K · Exhibit 21", url: "https://www.sec.gov/Archives/edgar/data/1336920/000133692026000030/ldos1022026ex21.htm" },
       { category: "易迅验证", title: "修正断词后命中14条精确记录", detail: "采购商使用易迅实际拼写LEIDOS SECURITY DETECTION & AUTOMAT ION, INC.，两年口径返回14条；其中列管后中国进口6条。", source: "易迅数据 · 环球提单 · 2026-08-25核验" },
       { category: "交易证据", title: "天津CT机架在列管后持续到货", detail: "2025-06-24、06-26、07-15各10件/7,905千克，2025-09-25与10-16各8件/6,324千克；货描均为CT GANTRY，供应商为Schleifring Transmission Technology（Tianjin）。", source: "易迅数据 · 中国原产筛选" },
-      { category: "综合评分", title: "证据闭环评分：100/100", detail: "列管身份15/15、集团关系20/20、中国来源25/25、管控后交易25/25、安检设备产品匹配15/15。" },
+      { category: "综合评分", title: "高风险延续链评分：88/100", detail: "列管身份15/15、集团关系20/20、中国来源25/25、管控后交易20/20、管控前基线及路径切换8/20。需逐票闭合管控前同类货物基线后，方可进入90分以上区间。" },
     ],
-    gaps: ["取得原始提单号和商业发票", "核验CT机架及X光组件的物项编码", "跟踪2026年Leidos安检业务合资重组后的实际收货主体"],
+    gaps: ["逐票核实管控前8条记录是否为同一供应商与同类CT设备", "取得原始提单号和商业发票", "核验物项编码及2026年业务重组后的实际收货主体"],
   },
   {
     entityId: 33,
