@@ -3,10 +3,12 @@
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import data from "../public/data/control-entities.json";
+import { supplementalEntities, supplementalNotices, unreliableEntityIds, type RegulationType } from "./regulatory-data";
 
 type View = "home" | "entities" | "notices" | "timeline" | "screening";
 type MenuId = "entities" | "policy" | "research";
 type Entity = (typeof data.entities)[number];
+type RegulatoryEntity = Entity & { regulationTypes: RegulationType[] };
 type ScreeningNode = { stage: string; name: string; note: string; tone: "source" | "subject" | "alternate" | "destination"; connection?: "verified" | "pending"; linkLabel?: string };
 type NodePosition = { x: number; y: number };
 type ScreeningEvidence = { category: string; title: string; detail: string; source?: string; url?: string };
@@ -17,25 +19,62 @@ const regionTone: Record<string, string> = {
   日本: "amber",
   欧盟: "blue",
   台湾地区: "violet",
+  加拿大: "green",
+};
+const regionColor: Record<string, string> = {
+  美国: "#08c8d5",
+  日本: "#347cff",
+  欧盟: "#7b68f6",
+  台湾地区: "#ee5fa8",
+  加拿大: "#28b78d",
 };
 
-const regionTotal = data.entities.reduce<Record<string, number>>((acc, item) => {
+const regulationTypes: RegulationType[] = ["管控名单", "不可靠实体", "关注名单"];
+const regulationTone: Record<RegulationType, string> = {
+  管控名单: "regulation-control",
+  不可靠实体: "regulation-unreliable",
+  关注名单: "regulation-watch",
+};
+const regulationColor: Record<RegulationType, string> = {
+  管控名单: "#08aebd",
+  不可靠实体: "#e85f76",
+  关注名单: "#eea43a",
+};
+const regulatoryEntities: RegulatoryEntity[] = [
+  ...data.entities.map((item) => ({
+    ...item,
+    regulationTypes: ["管控名单" as const, ...(unreliableEntityIds.has(item.id) ? ["不可靠实体" as const] : [])],
+  })),
+  ...supplementalEntities,
+];
+const notices = [
+  ...data.notices.map((notice) => ({ ...notice, regulationType: "管控名单" as const })),
+  ...supplementalNotices,
+].sort((a, b) => b.date.localeCompare(a.date) || b.notice.localeCompare(a.notice));
+
+const regionTotal = regulatoryEntities.reduce<Record<string, number>>((acc, item) => {
   acc[item.region] = (acc[item.region] || 0) + 1;
   return acc;
 }, {});
 
-const regionData = ["美国", "日本", "欧盟", "台湾地区"].map((name) => ({
+let regionCursor = 0;
+const regionData = ["美国", "日本", "欧盟", "台湾地区", "加拿大"].map((name) => {
+  const count = regionTotal[name] || 0;
+  const share = (count / regulatoryEntities.length) * 100;
+  const angle = -90 + (regionCursor + share / 2) * 3.6;
+  regionCursor += share;
+  return { name, count, share, tone: regionTone[name], angle };
+}).filter((item) => item.count > 0);
+const regulationData = regulationTypes.map((name) => ({
   name,
-  count: regionTotal[name] || 0,
-  share: ((regionTotal[name] || 0) / data.entities.length) * 100,
-  tone: regionTone[name],
+  count: regulatoryEntities.filter((item) => item.regulationTypes.includes(name)).length,
+  color: regulationColor[name],
 }));
-
-const notices = [...data.notices].reverse();
-const companyCount = data.entities.filter((item) => item.entityType === "企业").length;
-const institutionCount = data.entities.length - companyCount;
+const maxRegulationCount = Math.max(...regulationData.map((item) => item.count));
+const companyCount = regulatoryEntities.filter((item) => item.entityType === "企业").length;
+const institutionCount = regulatoryEntities.length - companyCount;
 const screeningEntityIds = [1, 2, 3, 4, 5, 29, 33, 53, 55];
-const screeningEntities = data.entities.filter((item) => screeningEntityIds.includes(item.id));
+const screeningEntities = regulatoryEntities.filter((item) => screeningEntityIds.includes(item.id));
 const screeningCases: ScreeningCase[] = [
   {
     entityId: 1,
@@ -201,12 +240,16 @@ const screeningScoreByEntity = new Map(
   screeningCases.map((item) => [item.entityId, Number(item.confidence.match(/(\d+)分/)?.[1] || 0)]),
 );
 const delay = (index: number) => ({ "--delay": `${Math.min(index * 70, 560)}ms` } as CSSProperties);
-const regionStopOne = regionData[0].share;
-const regionStopTwo = regionStopOne + regionData[1].share;
-const regionStopThree = regionStopTwo + regionData[2].share;
 const segmentGap = 0.65;
+let donutCursor = 0;
+const donutSegments = regionData.map((item) => {
+  const start = donutCursor;
+  const end = start + item.share;
+  donutCursor = end;
+  return `${regionColor[item.name]} ${start}% ${Math.max(start, end - segmentGap)}%, transparent ${Math.max(start, end - segmentGap)}% ${end}%`;
+});
 const donutStyle = {
-  background: `conic-gradient(from -90deg, #08c8d5 0 ${regionStopOne - segmentGap}%, transparent ${regionStopOne - segmentGap}% ${regionStopOne}%, #347cff ${regionStopOne}% ${regionStopTwo - segmentGap}%, transparent ${regionStopTwo - segmentGap}% ${regionStopTwo}%, #7b68f6 ${regionStopTwo}% ${regionStopThree - segmentGap}%, transparent ${regionStopThree - segmentGap}% ${regionStopThree}%, #ee5fa8 ${regionStopThree}% ${100 - segmentGap}%, transparent ${100 - segmentGap}% 100%)`,
+  background: `conic-gradient(from -90deg, ${donutSegments.join(", ")})`,
 } as CSSProperties;
 
 const menuGroups: Array<{
@@ -222,7 +265,7 @@ const menuGroups: Array<{
     eyebrow: "ENTITY INTELLIGENCE",
     views: ["entities"],
     items: [
-      { view: "entities", label: "管制企业清单", note: "153个官方列名实体" },
+      { view: "entities", label: "管制企业清单", note: `${regulatoryEntities.length}个多类型列名实体` },
     ],
   },
   {
@@ -252,7 +295,8 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("全部地区");
   const [year, setYear] = useState("全部年份");
-  const [type, setType] = useState("全部类型");
+  const [entityKind, setEntityKind] = useState("全部主体");
+  const [regulationType, setRegulationType] = useState("全部管制类型");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -263,14 +307,15 @@ export default function Home() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return data.entities.filter(
+    return regulatoryEntities.filter(
       (item) =>
-        (!q || `${item.nameCn} ${item.nameEn} ${item.notice}`.toLowerCase().includes(q)) &&
+        (!q || `${item.nameCn} ${item.nameEn} ${item.notice} ${item.regulationTypes.join(" ")}`.toLowerCase().includes(q)) &&
         (region === "全部地区" || item.region === region) &&
         (year === "全部年份" || item.effectiveDate.startsWith(year)) &&
-        (type === "全部类型" || item.entityType === type),
+        (entityKind === "全部主体" || item.entityType === entityKind) &&
+        (regulationType === "全部管制类型" || item.regulationTypes.includes(regulationType as RegulationType)),
     );
-  }, [query, region, year, type]);
+  }, [query, region, year, entityKind, regulationType]);
 
   const pageSize = 15;
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -287,6 +332,15 @@ export default function Home() {
   const changeFilter = (setter: (value: string) => void, value: string) => {
     setter(value);
     setPage(1);
+  };
+
+  const drilldownEntities = (next: { region?: string; regulationType?: RegulationType }) => {
+    setQuery("");
+    setYear("全部年份");
+    setEntityKind("全部主体");
+    setRegion(next.region || "全部地区");
+    setRegulationType(next.regulationType || "全部管制类型");
+    selectView("entities");
   };
 
   return (
@@ -331,14 +385,14 @@ export default function Home() {
             ))}
           </nav>
 
-          <div className="asof"><i /> 数据更新至 2026.08.25</div>
+          <div className="asof"><i /> 数据更新至 2026.08.26</div>
         </div>
       </header>
 
       {openMenu && <button className="menu-scrim" onClick={() => setOpenMenu(null)} aria-label="关闭导航菜单" />}
 
       {activeView === "home" ? (
-        <HomeDashboard onSelect={selectView} />
+        <HomeDashboard onSelect={selectView} onDrilldown={drilldownEntities} />
       ) : (
         <section className="content shell" id="workspace">
           {activeView === "entities" && (
@@ -346,7 +400,8 @@ export default function Home() {
               query={query}
               region={region}
               year={year}
-              type={type}
+              entityKind={entityKind}
+              regulationType={regulationType}
               filtered={filtered}
               visible={visible}
               page={page}
@@ -357,7 +412,8 @@ export default function Home() {
               setQuery={setQuery}
               setRegion={setRegion}
               setYear={setYear}
-              setType={setType}
+              setEntityKind={setEntityKind}
+              setRegulationType={setRegulationType}
             />
           )}
           {activeView === "notices" && <NoticeModule />}
@@ -370,7 +426,7 @@ export default function Home() {
   );
 }
 
-function HomeDashboard({ onSelect }: { onSelect: (view: View) => void }) {
+function HomeDashboard({ onSelect, onDrilldown }: { onSelect: (view: View) => void; onDrilldown: (next: { region?: string; regulationType?: RegulationType }) => void }) {
   return (
     <>
       <section className="home-hero shell">
@@ -381,21 +437,22 @@ function HomeDashboard({ onSelect }: { onSelect: (view: View) => void }) {
       </section>
 
       <section className="stats-strip shell" aria-label="整体数据统计">
-        <StatCard value={String(data.entities.length)} label="官方列名实体" note="Official entries" index="01" />
+        <StatCard value={String(regulatoryEntities.length)} label="多类型列名实体" note="Unique entries" index="01" />
         <StatCard value={String(companyCount)} label="商业主体" note="Companies" index="02" />
         <StatCard value={String(institutionCount)} label="机构 / 单位" note="Institutions" index="03" />
-        <StatCard value={String(data.notices.length)} label="公告批次" note="Official notices" index="04" />
+        <StatCard value={String(notices.length)} label="公告批次" note="Official notices" index="04" />
       </section>
 
       <section className="home-grid shell">
-        <CountryPanel />
+        <CountryPanel onDrilldown={(region) => onDrilldown({ region })} />
+        <RegulationPanel onDrilldown={(regulationType) => onDrilldown({ regulationType })} />
         <article className="signal-panel">
           <div className="panel-heading"><div><span>LATEST SIGNALS</span><h2>最新政策信号</h2></div><button onClick={() => onSelect("notices")}>全部公告 ↗</button></div>
           <div className="latest-list">
             {notices.slice(0, 3).map((notice, index) => (
-              <a href={notice.url} target="_blank" rel="noreferrer" key={notice.notice}>
+              <a href={notice.url} target="_blank" rel="noreferrer" key={`${notice.notice}-${notice.regulationType}`}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
-                <div><time>{notice.date}</time><strong>{notice.notice}</strong><small>{notice.region} · 新增 {notice.count} 个实体</small></div>
+                <div><time>{notice.date}</time><strong>{notice.notice}</strong><small><RegulationBadge type={notice.regulationType} />{notice.region} · 新增 {notice.count} 个实体</small></div>
                 <b>↗</b>
               </a>
             ))}
@@ -412,24 +469,28 @@ function StatCard({ value, label, note, index }: { value: string; label: string;
   return <article className="stat-card"><span>{index}</span><div><strong>{value}</strong><b>{label}</b><small>{note}</small></div></article>;
 }
 
-function CountryPanel() {
+function RegulationBadge({ type }: { type: RegulationType }) {
+  return <span className={`regulation-badge ${regulationTone[type]}`}>{type}</span>;
+}
+
+function CountryPanel({ onDrilldown }: { onDrilldown: (region: string) => void }) {
   return (
     <article className="country-panel">
-      <div className="panel-heading"><div><span>GEOGRAPHIC EXPOSURE</span><h2>国家 / 地区分布</h2></div></div>
+      <div className="panel-heading"><div><span>GEOGRAPHIC EXPOSURE</span><h2>国家 / 地区分布</h2></div><small>点击下钻</small></div>
       <div className="country-visual">
-        <div className="donut-shell" aria-hidden="true">
+        <div className="donut-shell" role="group" aria-label="按国家或地区下钻实体清单">
           <div className="donut-halo" />
           <div className="donut-radar" />
           <div className="donut" style={donutStyle} />
-          <i className="donut-node dn-one" /><i className="donut-node dn-two" /><i className="donut-node dn-three" /><i className="donut-node dn-four" />
-          <div className="donut-core"><small>GEO NODES</small><strong>04</strong><span>区域覆盖</span></div>
+          {regionData.map((item) => <button type="button" className={`donut-action ${item.tone}`} style={{ "--angle": `${item.angle}deg` } as CSSProperties} onClick={() => onDrilldown(item.name)} aria-label={`查看${item.name}${item.count}个实体`} title={`查看${item.name}实体`} key={item.name}><span>{item.name}</span></button>)}
+          <div className="donut-core"><small>GEO NODES</small><strong>{String(regionData.length).padStart(2, "0")}</strong><span>区域覆盖</span></div>
         </div>
         <div className="country-legend">
           {regionData.map((item) => (
-            <div key={item.name}>
+            <button type="button" onClick={() => onDrilldown(item.name)} aria-label={`下钻查看${item.name}实体`} key={item.name}>
               <i className={item.tone} /><span>{item.name}</span><strong>{item.count}</strong><small>{item.share.toFixed(1)}%</small>
               <em><b className={item.tone} style={{ width: `${item.share}%` }} /></em>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -437,34 +498,82 @@ function CountryPanel() {
   );
 }
 
+function RegulationPanel({ onDrilldown }: { onDrilldown: (type: RegulationType) => void }) {
+  const descriptions: Record<RegulationType, string> = {
+    管控名单: "两用物项原则禁止出口，特殊情形须申请许可",
+    不可靠实体: "涉及进出口、投资或交易合作等限制措施",
+    关注名单: "强化最终用户与最终用途审查",
+  };
+  return <article className="regulation-panel">
+    <div className="panel-heading"><div><span>REGULATORY MIX</span><h2>管制类型构成</h2></div><small>点击筛选</small></div>
+    <div className="regulation-visual" aria-label="管制类型实体数量">
+      {regulationData.map((item, index) => <button type="button" className={regulationTone[item.name]} onClick={() => onDrilldown(item.name)} style={{ "--delay": `${index * 90}ms`, "--bar": `${(item.count / maxRegulationCount) * 100}%`, "--reg-color": item.color } as CSSProperties} key={item.name}>
+        <div><RegulationBadge type={item.name} /><strong>{item.count}</strong></div>
+        <p>{descriptions[item.name]}</p>
+        <em><i /></em>
+      </button>)}
+    </div>
+    <div className="regulation-note"><i /><span>同一实体可能同时属于多个类别，图形按类别关系计数。</span></div>
+  </article>;
+}
+
 function EntityRegistry(props: {
-  query: string; region: string; year: string; type: string; filtered: Entity[]; visible: Entity[];
+  query: string; region: string; year: string; entityKind: string; regulationType: string; filtered: RegulatoryEntity[]; visible: RegulatoryEntity[];
   page: number; pages: number; currentPage: number; setPage: (value: number | ((page: number) => number)) => void;
   changeFilter: (setter: (value: string) => void, value: string) => void;
-  setQuery: (value: string) => void; setRegion: (value: string) => void; setYear: (value: string) => void; setType: (value: string) => void;
+  setQuery: (value: string) => void; setRegion: (value: string) => void; setYear: (value: string) => void; setEntityKind: (value: string) => void; setRegulationType: (value: string) => void;
 }) {
-  const { query, region, year, type, filtered, visible, page, pages, currentPage, setPage, changeFilter, setQuery, setRegion, setYear, setType } = props;
+  const { query, region, year, entityKind, regulationType, filtered, visible, page, pages, currentPage, setPage, changeFilter, setQuery, setRegion, setYear, setEntityKind, setRegulationType } = props;
   return <div className="module-panel">
     <div className="filters">
       <label className="search"><span>⌕</span><input value={query} onChange={(event) => changeFilter(setQuery, event.target.value)} placeholder="搜索中文名、英文名或公告号" /></label>
-      <select aria-label="地区" value={region} onChange={(event) => changeFilter(setRegion, event.target.value)}>{["全部地区", "美国", "日本", "欧盟", "台湾地区"].map((option) => <option key={option}>{option}</option>)}</select>
+      <select aria-label="地区" value={region} onChange={(event) => changeFilter(setRegion, event.target.value)}>{["全部地区", ...regionData.map((item) => item.name)].map((option) => <option key={option}>{option}</option>)}</select>
       <select aria-label="年份" value={year} onChange={(event) => changeFilter(setYear, event.target.value)}>{["全部年份", "2025", "2026"].map((option) => <option key={option}>{option}</option>)}</select>
-      <select aria-label="类型" value={type} onChange={(event) => changeFilter(setType, event.target.value)}>{["全部类型", "企业", "机构/单位"].map((option) => <option key={option}>{option}</option>)}</select>
+      <select aria-label="主体属性" value={entityKind} onChange={(event) => changeFilter(setEntityKind, event.target.value)}>{["全部主体", "企业", "机构/单位"].map((option) => <option key={option}>{option}</option>)}</select>
+      <select aria-label="管制类型" value={regulationType} onChange={(event) => changeFilter(setRegulationType, event.target.value)}>{["全部管制类型", ...regulationTypes].map((option) => <option key={option}>{option}</option>)}</select>
     </div>
     <div className="table-card">
       <div className="table-meta"><span>检索结果 <b>{filtered.length}</b> 条</span><span>官方公告来源已逐条关联</span></div>
-      <div className="table-scroll"><table><thead><tr><th>序号</th><th>实体名称</th><th>国家 / 地区</th><th>类型</th><th>生效日</th><th>公告批次</th><th /></tr></thead><tbody>{visible.map((item) => <tr key={item.id}><td className="muted">{String(item.id).padStart(3, "0")}</td><td><a className="entity-name" href={item.sourceUrl} target="_blank" rel="noreferrer"><strong>{item.nameCn}</strong><span>{item.nameEn}</span></a></td><td><span className={`tag ${regionTone[item.region]}`}>{item.region}</span></td><td>{item.entityType}</td><td className="mono">{item.effectiveDate}</td><td>{item.notice}</td><td><a className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer" aria-label={`打开${item.notice}`}>↗</a></td></tr>)}</tbody></table></div>
+      <div className="table-scroll"><table><thead><tr><th>序号</th><th>实体名称</th><th>国家 / 地区</th><th>管制类型</th><th>主体属性</th><th>生效日</th><th>公告批次</th><th /></tr></thead><tbody>{visible.map((item) => <tr key={item.id}><td className="muted">{String(item.id).padStart(3, "0")}</td><td><a className="entity-name" href={item.sourceUrl} target="_blank" rel="noreferrer"><strong>{item.nameCn}</strong><span>{item.nameEn}</span></a></td><td><span className={`tag ${regionTone[item.region]}`}>{item.region}</span></td><td><div className="regulation-badge-row">{item.regulationTypes.map((itemType) => <RegulationBadge type={itemType} key={itemType} />)}</div></td><td>{item.entityType}</td><td className="mono">{item.effectiveDate}</td><td>{item.notice}</td><td><a className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer" aria-label={`打开${item.notice}`}>↗</a></td></tr>)}</tbody></table></div>
       <div className="pager"><span>第 {currentPage} / {pages} 页</span><div><button disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>← 上一页</button><button disabled={page >= pages} onClick={() => setPage((value) => value + 1)}>下一页 →</button></div></div>
     </div>
   </div>;
 }
 
 function NoticeModule() {
-  return <div className="module-panel"><div className="notice-grid">{notices.map((notice, index) => <article className={`notice-card reveal ${regionTone[notice.region]}`} style={delay(index)} key={notice.notice}><div className="notice-top"><span className={`tag ${regionTone[notice.region]}`}>{notice.region}</span><time>{notice.date}</time></div><div className="notice-index">{String(data.notices.length - index).padStart(2, "0")}</div><h3>{notice.notice}</h3><p>本批次新增 <strong>{notice.count}</strong> 个管控实体。</p><div className="notice-bottom"><span><b>{notice.count}</b> ENTITIES</span><a href={notice.url} target="_blank" rel="noreferrer">公告原文 ↗</a></div></article>)}</div></div>;
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("全部管制类型");
+  const [regionFilter, setRegionFilter] = useState("全部地区");
+  const [yearFilter, setYearFilter] = useState("全部年份");
+  const filteredNotices = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return notices.filter((notice) =>
+      (!q || `${notice.notice} ${notice.region} ${notice.regulationType}`.toLowerCase().includes(q)) &&
+      (typeFilter === "全部管制类型" || notice.regulationType === typeFilter) &&
+      (regionFilter === "全部地区" || notice.region === regionFilter) &&
+      (yearFilter === "全部年份" || notice.date.startsWith(yearFilter)),
+    );
+  }, [query, typeFilter, regionFilter, yearFilter]);
+  const noticeRegions = Array.from(new Set(notices.map((notice) => notice.region)));
+  return <div className="module-panel">
+    <div className="filters notice-filters">
+      <label className="search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索公告号、地区或类别" /></label>
+      <select aria-label="公告管制类型" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>{["全部管制类型", ...regulationTypes].map((option) => <option key={option}>{option}</option>)}</select>
+      <select aria-label="公告地区" value={regionFilter} onChange={(event) => setRegionFilter(event.target.value)}>{["全部地区", ...noticeRegions].map((option) => <option key={option}>{option}</option>)}</select>
+      <select aria-label="公告年份" value={yearFilter} onChange={(event) => setYearFilter(event.target.value)}>{["全部年份", "2025", "2026"].map((option) => <option key={option}>{option}</option>)}</select>
+    </div>
+    <div className="module-result-meta">当前显示 <b>{filteredNotices.length}</b> 个公告批次</div>
+    {filteredNotices.length > 0 ? <div className="notice-grid">{filteredNotices.map((notice, index) => <article className={`notice-card reveal ${regulationTone[notice.regulationType]}`} style={{ ...delay(index), "--tag": regulationColor[notice.regulationType] } as CSSProperties} key={`${notice.notice}-${notice.regulationType}`}><div className="notice-top"><div><span className={`tag ${regionTone[notice.region] || "green"}`}>{notice.region}</span><RegulationBadge type={notice.regulationType} /></div><time>{notice.date}</time></div><div className="notice-index">{String(filteredNotices.length - index).padStart(2, "0")}</div><h3>{notice.notice}</h3><p>本批次新增 <strong>{notice.count}</strong> 个{notice.regulationType}实体。</p><div className="notice-bottom"><span><b>{notice.count}</b> ENTITIES</span><a href={notice.url} target="_blank" rel="noreferrer">公告原文 ↗</a></div></article>)}</div> : <div className="filter-empty">暂无符合筛选条件的公告</div>}
+  </div>;
 }
 
 function TimelineModule() {
-  return <div className="module-panel"><div className="timeline-summary"><div><span>政策跨度</span><b>2025—2026</b></div><i /><p>2025年名单机制密集落地，2026年对象范围扩展至日本和欧盟，并强化对原产中国两用物项境外转移的约束。</p></div><div className="timeline-track"><div className="track-line"><i /></div>{notices.map((notice, index) => <article className={`timeline-event reveal ${regionTone[notice.region]} ${index === 0 ? "latest" : ""}`} style={delay(index)} key={notice.notice}><div className="timeline-date"><b>{notice.date.slice(5).replace("-", ".")}</b><span>{notice.date.slice(0, 4)}</span></div><div className="timeline-node"><i /><em /></div><div className="timeline-card"><div className="timeline-card-top"><span className={`tag ${regionTone[notice.region]}`}>{notice.region}</span><small>+{notice.count} ENTITIES</small>{index === 0 && <b>最新</b>}</div><h3>{notice.notice}</h3><p>{index === data.notices.length - 1 ? "出口管制管控名单进入实体化实施阶段。" : "管控范围持续扩围，名单主体及替代交易路径成为合规核查重点。"}</p><a href={notice.url} target="_blank" rel="noreferrer">查看政策原文 <span>↗</span></a></div></article>)}</div></div>;
+  const descriptions: Record<RegulationType, string> = {
+    管控名单: "列入出口管制管控名单，涉及两用物项出口禁止或特别许可要求。",
+    不可靠实体: "列入不可靠实体清单，涉及进出口、投资及相关交易合作限制。",
+    关注名单: "纳入更严格的最终用户与最终用途审查，并限制通用许可方式。",
+  };
+  return <div className="module-panel"><div className="timeline-summary"><div><span>政策跨度</span><b>2025—2026</b></div><i /><p>时间轴统一展示管控名单、不可靠实体清单和关注名单三类政策记录，便于识别同一实体的多重监管关系。</p></div><div className="timeline-track"><div className="track-line"><i /></div>{notices.map((notice, index) => <article className={`timeline-event reveal ${regulationTone[notice.regulationType]} ${index === 0 ? "latest" : ""}`} style={{ ...delay(index), "--tag": regulationColor[notice.regulationType] } as CSSProperties} key={`${notice.notice}-${notice.regulationType}`}><div className="timeline-date"><b>{notice.date.slice(5).replace("-", ".")}</b><span>{notice.date.slice(0, 4)}</span></div><div className="timeline-node"><i /><em /></div><div className="timeline-card"><div className="timeline-card-top"><span className={`tag ${regionTone[notice.region] || "green"}`}>{notice.region}</span><RegulationBadge type={notice.regulationType} /><small>+{notice.count} ENTITIES</small>{index === 0 && <b>最新</b>}</div><h3>{notice.notice}</h3><p>{descriptions[notice.regulationType]}</p><a href={notice.url} target="_blank" rel="noreferrer">查看政策原文 <span>↗</span></a></div></article>)}</div></div>;
 }
 
 const makeDefaultNodePositions = (count: number): NodePosition[] => {
@@ -608,7 +717,7 @@ function ScreeningModule() {
       <div className={`entity-combobox ${entityMenuOpen ? "open" : ""}`}>
         <span>选择管制企业</span>
         <button className="entity-select-trigger" aria-haspopup="listbox" aria-expanded={entityMenuOpen} onClick={() => setEntityMenuOpen((open) => !open)}>
-          <span><b>{entity.nameCn}</b><small>{entity.nameEn}</small></span><em className={score >= 90 ? "high" : score > 0 ? "rated" : "empty"}>{score}分</em><i>⌄</i>
+          <span><b>{entity.nameCn}</b><small>{entity.nameEn} · {entity.regulationTypes.join(" / ")}</small></span><em className={score >= 90 ? "high" : score > 0 ? "rated" : "empty"}>{score}分</em><i>⌄</i>
         </button>
         {entityMenuOpen && <>
           <button className="entity-dropdown-scrim" aria-label="关闭企业筛选" onClick={() => setEntityMenuOpen(false)} />
@@ -616,7 +725,7 @@ function ScreeningModule() {
             {screeningEntities.map((item, index) => {
               const itemScore = screeningScoreByEntity.get(item.id) || 0;
               return <button role="option" aria-selected={item.id === entity.id} className={`entity-filter-card ${item.id === entity.id ? "active" : ""}`} style={delay(index)} onClick={() => { setSelectedId(item.id); setEntityMenuOpen(false); }} key={item.id}>
-                <span><strong>{item.nameCn}</strong><small>{item.nameEn}</small><em>{item.region} · {item.entityType}</em></span><span className={`entity-score ${itemScore >= 90 ? "high" : itemScore > 0 ? "rated" : "empty"}`}>{itemScore}分</span><i>{item.id === entity.id ? "●" : "↗"}</i>
+                <span><strong>{item.nameCn}</strong><small>{item.nameEn}</small><em>{item.region} · {item.regulationTypes.join(" / ")}</em></span><span className={`entity-score ${itemScore >= 90 ? "high" : itemScore > 0 ? "rated" : "empty"}`}>{itemScore}分</span><i>{item.id === entity.id ? "●" : "↗"}</i>
               </button>;
             })}
           </div>
@@ -626,7 +735,7 @@ function ScreeningModule() {
 
     <section className="penetration-case-panel">
         <header className="case-heading">
-          <div><span>替代进口排查</span><h2>{entity.nameCn}</h2><p>{entity.nameEn}</p></div>
+          <div><span>替代进口排查</span><h2>{entity.nameCn}</h2><p>{entity.nameEn}</p><div className="case-regulation-row">{entity.regulationTypes.map((itemType) => <RegulationBadge type={itemType} key={itemType} />)}</div></div>
           <div className="case-heading-meta"><strong className={hasEvidence ? "positive" : "pending"}>{currentCase.finding}</strong>{hasEvidence && <b>{currentCase.confidence}</b>}<small>{entity.notice} · {entity.effectiveDate}</small><a href={entity.sourceUrl} target="_blank" rel="noreferrer">官方公告 ↗</a></div>
         </header>
 
