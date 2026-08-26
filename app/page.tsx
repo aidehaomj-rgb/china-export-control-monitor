@@ -73,7 +73,7 @@ const regulationData = regulationTypes.map((name) => ({
 const maxRegulationCount = Math.max(...regulationData.map((item) => item.count));
 const companyCount = regulatoryEntities.filter((item) => item.entityType === "企业").length;
 const institutionCount = regulatoryEntities.length - companyCount;
-const screeningEntityIds = [1, 2, 3, 4, 5, 29, 33, 53, 55];
+const screeningEntityIds = [1, 2, 3, 4, 5, 29, 33, 53, 55, 195, 203];
 const screeningEntities = regulatoryEntities.filter((item) => screeningEntityIds.includes(item.id));
 const screeningCases: ScreeningCase[] = [
   {
@@ -234,6 +234,48 @@ const screeningCases: ScreeningCase[] = [
       { category: "综合评分", title: "候选链评分：85/100", detail: "列管身份15/15、集团关系15/20、中国上游20/25、管控后下游交易25/25、产品连续性10/15。未达到90分闭环阈值。" },
     ],
     gaps: ["取得MKA物料清单和批次对应关系", "核对中国进口件是否用于Cubic订单", "取得采购订单、发票、原产地证及提单号"],
+  },
+  {
+    entityId: 195,
+    finding: "高风险替代供应链",
+    confidence: "A级 · 100分",
+    summary: "易迅一年口径完整读取254条Illumina记录，按可见字段去重为253条；其中32条原产地标注为中国，26条由Illumina Singapore Pte. Ltd.发运、6条由深圳Global Hi-Tek Precision发运，形成“中国来源—新加坡关联主体/中国供应商—列名实体”的双路径闭环。",
+    checks: ["ILLUMINA INC精确采购商名称", "2025-08-20至2026-08-20全部254条记录", "可见字段去重与中国原产筛选", "新加坡子公司、供应商、产品与日期交叉核验"],
+    nodes: [
+      { stage: "中国来源", name: "Global Hi-Tek / 中国来源试剂", note: "深圳精密部件供应商及中国原产测序试剂", tone: "source", connection: "verified", linkLabel: "32条中国原产" },
+      { stage: "境外承接主体", name: "Illumina Singapore Pte. Ltd.", note: "Illumina全资新加坡子公司；26条中国原产记录的发货主体", tone: "alternate", connection: "verified", linkLabel: "关联发运" },
+      { stage: "列名收货实体", name: "Illumina, Inc.", note: "美国收货人；2025-02-04起列入不可靠实体清单", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "Illumina自2025年2月4日起列入不可靠实体清单", detail: "不可靠实体清单工作机制公告2025年第4号将因美纳公司列入不可靠实体清单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/cms_files/filemanager/policySummary/viewcore_ab15d2258dda4e93b8ad1ec4776d37c3.html" },
+      { category: "易迅验证", title: "253条唯一记录中筛得32条中国原产记录", detail: "查询条件：采购商ILLUMINA INC、2025-08-20至2026-08-20；254条原始记录、253条可见字段唯一记录。中国原产32条，日期覆盖2025-09-03至2026-08-18。", source: "易迅数据 · 2页全部读取 · 2026-08-26核验" },
+      { category: "关系证据", title: "Illumina Singapore为全资新加坡子公司", detail: "Illumina 2025年度SEC Exhibit 21将Illumina Singapore Pte. Ltd.列为全资直接或间接子公司；26条中国原产记录由该主体向美国母公司发运。", source: "Illumina 2025 Form 10-K · Exhibit 21", url: "https://www.sec.gov/Archives/edgar/data/1110803/000111080326000024/ex211subsidiariesfy2510-k.htm" },
+      { category: "直接供应", title: "深圳Global Hi-Tek持续交付测序仪精密部件", detail: "6条唯一记录货描为CRADLE、INSEP ASSY与OPTICS PLATE，HS 902790；2026-08-18一票为73件、重量字段4,674，起运线索和供应商地址均指向深圳。", source: "美国海关公开提单", url: "https://www.importinfo.com/global-hi-tek-precision-limited" },
+      { category: "产品匹配", title: "试剂与光学板均对应Illumina测序体系", detail: "中国原产记录包括NovaSeq、MiSeq测序试剂以及测序仪光学板/安装组件；Illumina官方合格证同时确认新加坡体系承担仪器制造与最终检测。", source: "Illumina 官方合格证", url: "https://support.illumina.com/content/dam/illumina-support/documents/documentation/chemistry_documentation/lot-specific-documentation/2025/06/CoC-SH00732.pdf" },
+      { category: "综合评分", title: "证据闭环评分：100/100", detail: "不可靠实体身份15/15、关联关系20/20、中国来源25/25、列名后交易25/25、产品匹配15/15。评分用于排查优先级，不等同于违法认定。" },
+    ],
+    gaps: ["取得32条记录对应的原始提单号、发票与原产地证", "核验新加坡发运试剂的中国实际生产企业和批号", "核对相关物项分类、最终用途与许可证状态"],
+  },
+  {
+    entityId: 203,
+    finding: "高风险境外承接链路",
+    confidence: "A级 · 94分",
+    summary: "以FLIR历史报关名称补查后，易迅完整读取142条记录；2025年10月9日列名后共有79条唯一交易，其中中国优利德集团全资越南孙公司向Teledyne FLIR Commercial Systems交付33条Extech测量仪器，形成“中资集团—越南制造节点—FLIR关联进口主体”的高风险境外承接链路。",
+    checks: ["TELEDYNE FLIR LLC与FLIR SYSTEMS INC双名称", "2025-08-20至2026-08-20全部142条记录", "列名日后79条交易逐条筛选", "优利德越南股权、产品型号与收货主体关系"],
+    nodes: [
+      { stage: "中国集团", name: "Uni-Trend Technology (China) Co., Ltd.", note: "广东东莞上市公司；研发与集团控制节点", tone: "source", connection: "verified", linkLabel: "全资控制" },
+      { stage: "境外制造节点", name: "Uni-Trend Technology (Vietnam) Co., Ltd.", note: "优利德全资孙公司；33条列名后Extech仪器发运", tone: "alternate", connection: "verified", linkLabel: "越南制造" },
+      { stage: "关联收货主体", name: "Teledyne FLIR Commercial Systems, Inc.", note: "FLIR商业系统公司；列名主体历史关联进口名称", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "Teledyne FLIR自2025年10月9日起列入不可靠实体清单", detail: "不可靠实体清单工作机制公告2025年第10号将Teledyne FLIR公司列入不可靠实体清单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zfxxgk/fdzdgknr/ztfl/dwmygl/art/2025/art_772e09bfe5af4ed88e0cb08c63c36aa7.html" },
+      { category: "易迅验证", title: "列名后79条唯一交易中33条来自优利德越南", detail: "TELEDYNE FLIR LLC精确名称为0条；以历史名称FLIR SYSTEMS INC补查获得142条并全部读取。列名后79条均为唯一可见记录，其中33条发货方为Uni-Trend Technology (Vietnam)，日期覆盖2026-02-09至06-29。", source: "易迅数据 · 142条全部读取 · 2026-08-26核验" },
+      { category: "中资关系", title: "优利德越南为中国上市公司全资孙公司", detail: "优利德2024年年报明确将UNI-TREND TECHNOLOGY (VIETNAM) COMPANY LIMITED列为公司孙公司；公司官网同时列示东莞总部和越南工厂。", source: "优利德2024年年度报告", url: "https://big5.sse.com.cn/disclosure/listedinfo/announcement/c/new/2025-04-12/688628_20250412_HSIN.pdf" },
+      { category: "收货关系", title: "FLIR Commercial Systems属于FLIR体系", detail: "FLIR历史SEC Exhibit 21将FLIR Commercial Systems, Inc.列为子公司；Teledyne随后完成对FLIR的收购并以Teledyne FLIR运营。", source: "FLIR SEC Exhibit 21", url: "https://www.sec.gov/Archives/edgar/data/354908/000035490821000016/flir-12312020x10kex211ng1.htm" },
+      { category: "产品匹配", title: "33条记录直接命中Extech具体型号", detail: "货描包括SL250W声级计、MN35/MN36万用表、EX655钳形表、TG54-2红外温度计和VPC260颗粒计数器；17条目的地为美国、14条为香港、2条为中国。", source: "易迅数据 · 越南出口记录" },
+      { category: "综合评分", title: "风险评分：94/100", detail: "不可靠实体身份15/15、FLIR关系20/20、中资境外节点22/25、列名后交易25/25、产品型号12/15。扣分项为记录显示越南原产，尚未取得中国零部件投入和批次对应证据。" },
+    ],
+    gaps: ["取得优利德越南33条货物的BOM、生产批次和中国上游采购单", "取得原始提单与最终收货仓库资料", "区分民用Extech产品与受管制物项并核验许可证状态"],
   },
 ];
 const screeningScoreByEntity = new Map(
