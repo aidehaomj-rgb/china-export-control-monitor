@@ -161,6 +161,10 @@ tbody tr:hover .entity-name strong { color: var(--cyan-dark); }
 .entity-name strong, .entity-name span { display: block; }
 .entity-name strong { color: #2f3a40; font-size: 11px; font-weight: 600; }
 .entity-name span { max-width: 350px; margin-top: 3px; color: #8e999f; font: 8px/1.5 var(--font-mono); }
+.regulation-record-stack { display: grid; gap: 5px; }
+.regulation-record-stack > span { display: flex; align-items: center; gap: 6px; }
+.regulation-record-stack i { flex: 0 0 auto; padding: 2px 5px; border-radius: 999px; background: #eef6f7; color: #168793; font: 600 7px/1.35 var(--font-mono); font-style: normal; white-space: nowrap; }
+.regulation-source-stack { display: grid; gap: 5px; justify-items: center; }
 .tag { display: inline-block; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--tag) 36%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--tag) 7%, white); color: color-mix(in srgb, var(--tag) 80%, #28353b); font-size: 8px; white-space: nowrap; }
 .mono { font-family: var(--font-mono); }
 .source-link { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--cyan-dark); text-decoration: none; transition: .2s; }

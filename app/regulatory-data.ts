@@ -22,6 +22,13 @@ export type SupplementalNotice = {
   regulationType: RegulationType;
 };
 
+export type SupplementalRegulationRecord = {
+  regulationType: RegulationType;
+  notice: string;
+  effectiveDate: string;
+  sourceUrl: string;
+};
+
 export const unreliableEntityIds = new Set([
   6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
   25, 26, 27, 28, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 48, 49, 50,
@@ -32,6 +39,15 @@ const attentionFebruaryUrl = "https://www.mofcom.gov.cn/zcfb/blgg/art/2026/art_c
 const attentionJuneUrl = "https://www.mofcom.gov.cn/zfxxgk/gkml/art/2026/art_9f099c6e90f444638ea96713d33bbbf9.html";
 const unreliableFebruaryUrl = "https://www.mofcom.gov.cn/cms_files/filemanager/policySummary/viewcore_ab15d2258dda4e93b8ad1ec4776d37c3.html";
 const unreliableOctoberUrl = "https://www.mofcom.gov.cn/zfxxgk/fdzdgknr/ztfl/dwmygl/art/2025/art_772e09bfe5af4ed88e0cb08c63c36aa7.html";
+
+export const supplementalRegulationRecordsByEntityId = new Map<number, SupplementalRegulationRecord[]>([
+  [43, [{
+    regulationType: "不可靠实体",
+    notice: "不可靠实体清单工作机制公告2025年第10号",
+    effectiveDate: "2025-10-09",
+    sourceUrl: unreliableOctoberUrl,
+  }]],
+]);
 
 const attentionFebruary = [
   ["斯巴鲁株式会社", "SUBARU Corporation", "企业"],

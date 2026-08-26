@@ -3,12 +3,19 @@
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import data from "../public/data/control-entities.json";
-import { supplementalEntities, supplementalNotices, unreliableEntityIds, type RegulationType } from "./regulatory-data";
+import {
+  supplementalEntities,
+  supplementalNotices,
+  supplementalRegulationRecordsByEntityId,
+  unreliableEntityIds,
+  type RegulationType,
+  type SupplementalRegulationRecord,
+} from "./regulatory-data";
 
 type View = "home" | "entities" | "notices" | "timeline" | "screening";
 type MenuId = "entities" | "policy" | "research";
 type Entity = (typeof data.entities)[number];
-type RegulatoryEntity = Entity & { regulationTypes: RegulationType[] };
+type RegulatoryEntity = Entity & { regulationTypes: RegulationType[]; regulationRecords: SupplementalRegulationRecord[] };
 type ScreeningNode = { stage: string; name: string; note: string; tone: "source" | "subject" | "alternate" | "destination"; connection?: "verified" | "pending"; linkLabel?: string };
 type NodePosition = { x: number; y: number };
 type ScreeningEvidence = { category: string; title: string; detail: string; source?: string; url?: string };
@@ -44,8 +51,15 @@ const regulatoryEntities: RegulatoryEntity[] = [
   ...data.entities.map((item) => ({
     ...item,
     regulationTypes: ["管控名单" as const, ...(unreliableEntityIds.has(item.id) ? ["不可靠实体" as const] : [])],
+    regulationRecords: [
+      { regulationType: "管控名单" as const, notice: item.notice, effectiveDate: item.effectiveDate, sourceUrl: item.sourceUrl },
+      ...(supplementalRegulationRecordsByEntityId.get(item.id) || []),
+    ],
   })),
-  ...supplementalEntities,
+  ...supplementalEntities.map((item) => ({
+    ...item,
+    regulationRecords: [{ regulationType: item.regulationTypes[0], notice: item.notice, effectiveDate: item.effectiveDate, sourceUrl: item.sourceUrl }],
+  })),
 ];
 const notices = [
   ...data.notices.map((notice) => ({ ...notice, regulationType: "管控名单" as const })),
@@ -397,9 +411,9 @@ export default function Home() {
     const q = query.trim().toLowerCase();
     return regulatoryEntities.filter(
       (item) =>
-        (!q || `${item.nameCn} ${item.nameEn} ${item.notice} ${item.regulationTypes.join(" ")}`.toLowerCase().includes(q)) &&
+        (!q || `${item.nameCn} ${item.nameEn} ${item.regulationRecords.map((record) => record.notice).join(" ")} ${item.regulationTypes.join(" ")}`.toLowerCase().includes(q)) &&
         (region === "全部地区" || item.region === region) &&
-        (year === "全部年份" || item.effectiveDate.startsWith(year)) &&
+        (year === "全部年份" || item.regulationRecords.some((record) => record.effectiveDate.startsWith(year))) &&
         (entityKind === "全部主体" || item.entityType === entityKind) &&
         (regulationType === "全部管制类型" || item.regulationTypes.includes(regulationType as RegulationType)),
     );
@@ -622,7 +636,7 @@ function EntityRegistry(props: {
     </div>
     <div className="table-card">
       <div className="table-meta"><span>检索结果 <b>{filtered.length}</b> 条</span><span>官方公告来源已逐条关联</span></div>
-      <div className="table-scroll"><table><thead><tr><th>序号</th><th>实体名称</th><th>国家 / 地区</th><th>管制类型</th><th>主体属性</th><th>生效日</th><th>公告批次</th><th /></tr></thead><tbody>{visible.map((item) => <tr key={item.id}><td className="muted">{String(item.id).padStart(3, "0")}</td><td><a className="entity-name" href={item.sourceUrl} target="_blank" rel="noreferrer"><strong>{item.nameCn}</strong><span>{item.nameEn}</span></a></td><td><span className={`tag ${regionTone[item.region]}`}>{item.region}</span></td><td><div className="regulation-badge-row">{item.regulationTypes.map((itemType) => <RegulationBadge type={itemType} key={itemType} />)}</div></td><td>{item.entityType}</td><td className="mono">{item.effectiveDate}</td><td>{item.notice}</td><td><a className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer" aria-label={`打开${item.notice}`}>↗</a></td></tr>)}</tbody></table></div>
+      <div className="table-scroll"><table><thead><tr><th>序号</th><th>实体名称</th><th>国家 / 地区</th><th>管制类型</th><th>主体属性</th><th>生效日</th><th>公告批次</th><th /></tr></thead><tbody>{visible.map((item) => <tr key={item.id}><td className="muted">{String(item.id).padStart(3, "0")}</td><td><a className="entity-name" href={item.sourceUrl} target="_blank" rel="noreferrer"><strong>{item.nameCn}</strong><span>{item.nameEn}</span></a></td><td><span className={`tag ${regionTone[item.region]}`}>{item.region}</span></td><td><div className="regulation-badge-row">{item.regulationTypes.map((itemType) => <RegulationBadge type={itemType} key={itemType} />)}</div></td><td>{item.entityType}</td><td><div className="regulation-record-stack mono">{item.regulationRecords.map((record) => <span key={`${record.regulationType}-${record.effectiveDate}`}>{record.effectiveDate}</span>)}</div></td><td><div className="regulation-record-stack">{item.regulationRecords.map((record) => <span key={`${record.regulationType}-${record.notice}`}><i>{record.regulationType}</i>{record.notice}</span>)}</div></td><td><div className="regulation-source-stack">{item.regulationRecords.map((record) => <a className="source-link" href={record.sourceUrl} target="_blank" rel="noreferrer" aria-label={`打开${record.notice}`} key={`${record.regulationType}-${record.sourceUrl}`}>↗</a>)}</div></td></tr>)}</tbody></table></div>
       <div className="pager"><span>第 {currentPage} / {pages} 页</span><div><button disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>← 上一页</button><button disabled={page >= pages} onClick={() => setPage((value) => value + 1)}>下一页 →</button></div></div>
     </div>
   </div>;
