@@ -73,7 +73,7 @@ const regulationData = regulationTypes.map((name) => ({
 const maxRegulationCount = Math.max(...regulationData.map((item) => item.count));
 const companyCount = regulatoryEntities.filter((item) => item.entityType === "企业").length;
 const institutionCount = regulatoryEntities.length - companyCount;
-const screeningEntityIds = [1, 2, 3, 4, 5, 29, 33, 53, 55, 195, 203];
+const screeningEntityIds = [1, 2, 3, 4, 5, 29, 33, 53, 55, 194, 195, 202, 203];
 const screeningEntities = regulatoryEntities.filter((item) => screeningEntityIds.includes(item.id));
 const screeningCases: ScreeningCase[] = [
   {
@@ -238,6 +238,27 @@ const screeningCases: ScreeningCase[] = [
     gaps: ["取得MKA物料清单和批次对应关系", "核对中国进口件是否用于Cubic订单", "取得采购订单、发票、原产地证及提单号"],
   },
   {
+    entityId: 194,
+    finding: "第三国加工链 · 待证同货",
+    confidence: "B级 · 82分",
+    summary: "列入后易迅两年口径的中国原产筛选返回348条原始记录，供应商包含印度尼西亚、柬埔寨等地制造企业；但对代表性中间主体PT Komitrando Emporio反向核验后，中国A腿主要是涂层面料、拉链、绳带和扣件，B腿为成品箱包，存在真实加工解释，尚未形成同类货物直接转运闭环。",
+    checks: ["PVH CORP两年基线与中国原产筛选", "2025-02-04列入日前后日期对比", "印度尼西亚及柬埔寨发货主体归类", "PT Komitrando Emporio中国来料与成品B腿匹配"],
+    nodes: [
+      { stage: "中国原辅料端", name: "中国面料、拉链及箱包辅料供应商", note: "涂层面料、扣件、绳带与拉链；A腿可见", tone: "source", connection: "verified", linkLabel: "原辅料进口" },
+      { stage: "第三国制造节点", name: "PT Komitrando Emporio / Cambodia apparel suppliers", note: "印度尼西亚及柬埔寨成品箱包、服装发货人", tone: "alternate", connection: "pending", linkLabel: "同货未闭合" },
+      { stage: "列名收货实体", name: "PVH Corp.", note: "2025-02-04起列入不可靠实体清单", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "PVH集团自2025年2月4日起列入不可靠实体清单", detail: "不可靠实体清单工作机制公告2025年第4号将PVH集团列入不可靠实体清单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zfxxgk/fdzdgknr/ztfl/dwmygl/art/2025/art_499b3eae87874e9cb22fa4396fc1444e.html" },
+      { category: "易迅验证", title: "中国原产筛选返回348条原始记录", detail: "查询条件：采购商PVH CORP、原产国China、时间2024-08-20至2026-08-20；页面显示2个目的国或地区、348次交易、3个采购商名称变体、52个供应商。当前数量为平台原始结果，存在数据源重叠，不等同于348票唯一物理提单。", source: "易迅数据 · 两年口径 · 2026-08-26核验" },
+      { category: "下游交易", title: "列入后出现印度尼西亚和柬埔寨成品发货", detail: "代表性发货主体包括PT Komitrando Emporio、PT Ungaran Sari Garment、Super Link Fashions (Cambodia)与NC Apparel (Cambodia)，货物为箱包或服装；平台原产地字段标注China，仍需原始单证核实。", source: "易迅数据 · 中国原产筛选" },
+      { category: "A腿反证", title: "Komitrando中国A腿以原辅料为主", detail: "反向检索所见中国来货以涂层面料、扣件、绳带与拉链为主，而对美B腿为成品箱包；两腿存在生产加工关系，但尚不是同类货物连续转运。", source: "公开贸易档案", url: "https://www.eximpedia.app/companies/komitrando-emporio/65383380" },
+      { category: "证据边界", title: "第三国存在实质加工的替代解释", detail: "尚未取得同一款式、采购订单、集装箱或批次的双腿匹配；平台原产地字段本身不足以证明成品由中国绕道转运。" },
+      { category: "综合评分", title: "第三国加工链评分：82/100", detail: "不可靠实体身份15/15、列入后第三国B腿20/20、中国投入线索20/25、中间主体17/20、同货连续性10/20。A腿为原辅料、B腿为成品，未达到90分双腿同货闭环阈值。" },
+    ],
+    gaps: ["取得同一款式、采购订单号和批次的列入前中国直供基线", "取得第三国工厂BOM、生产工单、原产地证与加工增值资料", "按提单号、柜号和数量匹配中国A腿与对美B腿"],
+  },
+  {
     entityId: 195,
     finding: "单腿异常 · 字段冲突",
     confidence: "C级 · 70分",
@@ -258,6 +279,27 @@ const screeningCases: ScreeningCase[] = [
       { category: "综合评分", title: "字段冲突单腿评分：70/100", detail: "不可靠实体身份15/15、关联关系20/20、美国端中国原产字段15/25、列名后B腿15/20、A腿与产品重合5/20。未达到90分闭环阈值。" },
     ],
     gaps: ["取得26条新加坡发运记录的原始提单与原产地证", "核验试剂实际生产企业、批号和新加坡入库记录", "将6条深圳直接供应与新加坡路径分别核定物项属性"],
+  },
+  {
+    entityId: 202,
+    finding: "高可信延续链 · 未见换道",
+    confidence: "B级 · 89分",
+    summary: "列入前后，BAE Systems Controls持续从Lithium Werks (China)接收同规格锂离子电池模块，多批记录的货描、供应商、360件及7,723重量字段高度一致；集团关系和连续进口均较强，但前后始终由同一关联主体进口，尚未出现从列名主体直采切换至新中间实体的路径变化，因此按新标准封顶89分。",
+    checks: ["BAE Systems, Inc.与BAE Systems Controls关系", "两年284条基准结果与中国原产筛选", "2025-10-09列入日前后同货对比", "供应商、数量、重量及路径变化"],
+    nodes: [
+      { stage: "中国供应端", name: "Lithium Werks (China) Manufacturing", note: "锂离子电池模块；列入前后持续供货", tone: "source", connection: "verified", linkLabel: "同货连续" },
+      { stage: "集团进口主体", name: "BAE Systems Controls, Inc.", note: "Endicott业务主体；列入前后均为收货人", tone: "alternate", connection: "verified", linkLabel: "集团关系" },
+      { stage: "列名集团实体", name: "BAE Systems, Inc.", note: "2025-10-09起列入不可靠实体清单", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "BAE Systems, Inc.自2025年10月9日起列入不可靠实体清单", detail: "不可靠实体清单工作机制公告2025年第10号将BAE Systems, Inc.列入不可靠实体清单。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/zfxxgk/fdzdgknr/ztfl/dwmygl/art/2025/art_772e09bfe5af4ed88e0cb08c63c36aa7.html" },
+      { category: "关系证据", title: "BAE Systems Controls属于BAE美国业务体系", detail: "BAE官方供应商资料将Endicott与Fort Wayne的Controls业务列入美国航空航天及任务系统业务范围；该关系支持集团穿透，但不能替代具体交易适用范围的法律核定。", source: "BAE Systems 官方供应商中心", url: "https://www.baesystems.com/en-us/who-we-are/electronic-systems/supplier-center" },
+      { category: "易迅验证", title: "284条基准结果中筛得20条中国原产记录", detail: "查询条件：采购商BAE SYSTEMS CONTROLS INC、时间2024-08-20至2026-08-20；筛得20条中国原产原始记录，部分美国进口与环球提单记录可能重叠，不等同于20票唯一物理提单。", source: "易迅数据 · 两年口径 · 2026-08-26核验" },
+      { category: "前后延续", title: "同规格电池模块跨列入日持续到货", detail: "列入前可见2024-08-23、09-24及2025-01-17、02-23、02-24、07-27等记录；列入后可见2025-12-16及2026-02-05、03-02、03-06、04-12、06-30、07-17、07-24等记录，多批均为Lithium Werks中国供应、360件及7,723重量字段。", source: "易迅数据 · 中国原产筛选" },
+      { category: "证据边界", title: "连续进口成立，但未发生路径切换", detail: "列入前后收货人均为BAE Systems Controls；目前未见独立中间商、新关联主体或由列名实体直接进口切换至其他实体承接的证据，因此不作为完整绕道闭环认定。" },
+      { category: "综合评分", title: "关联主体延续链评分：89/100", detail: "不可靠实体身份15/15、集团关系20/20、中国来源25/25、列入后交易20/20、列入前后同货连续性9/10、路径切换0/10。证据很强，但未达到90分绕道闭环阈值。" },
+    ],
+    gaps: ["取得原始提单号、商业发票和原产地证并归并数据源重复", "核实BAE Systems, Inc.与Controls Inc.在不可靠实体措施下的具体法律适用范围", "补查列入前列名主体直接进口及列入后新中间实体承接记录"],
   },
   {
     entityId: 203,
