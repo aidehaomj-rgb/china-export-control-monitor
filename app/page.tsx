@@ -87,7 +87,7 @@ const regulationData = regulationTypes.map((name) => ({
 const maxRegulationCount = Math.max(...regulationData.map((item) => item.count));
 const companyCount = regulatoryEntities.filter((item) => item.entityType === "企业").length;
 const institutionCount = regulatoryEntities.length - companyCount;
-const screeningEntityIds = [1, 2, 3, 4, 5, 29, 33, 53, 55, 194, 195, 202, 203];
+const screeningEntityIds = [1, 2, 3, 4, 5, 29, 33, 53, 55, 194, 195, 196, 197, 198, 199, 202, 203, 204];
 const screeningEntities = regulatoryEntities.filter((item) => screeningEntityIds.includes(item.id));
 const screeningCases: ScreeningCase[] = [
   {
@@ -295,6 +295,70 @@ const screeningCases: ScreeningCase[] = [
     gaps: ["取得26条新加坡发运记录的原始提单与原产地证", "核验试剂实际生产企业、批号和新加坡入库记录", "将6条深圳直接供应与新加坡路径分别核定物项属性"],
   },
   {
+    entityId: 196,
+    finding: "暂未发现替代供应链",
+    confidence: "—",
+    summary: "暂未发现Dedrone by Axon在列入不可靠实体清单后，通过Axon或其他主体继续自中国进口列入前同类货物的证据。易迅三年精确名称9条记录已全部读取：列入前仅见印度VVDN交付路由器/无线电单元，列入后为美国Dedrone Defense向哥伦比亚等地出口；互联网贸易库复现上述方向，未见中国A腿。",
+    checks: [
+      "DEDRONE三年精确名称：9条，1页全部读取；中国来源0条",
+      "列入前：印度VVDN交付3批路由器/无线电单元，HS 85176290",
+      "列入后：Dedrone Defense向哥伦比亚出口雷达及航空器部件，非自中国进口",
+      "Axon Enterprise三年宽口径691条；中国来源410条；RADIO UNIT同货筛选0条",
+      "互联网贸易库：Eximpedia复现印度VVDN三票，Trademo复现哥伦比亚出口方向",
+      "互联网公司关系：Axon于2024-10-01完成收购，SEC列示Dedrone Defense为子公司",
+    ],
+    nodes: [], evidence: [],
+    gaps: ["Axon中国来源410条宽口径记录的商品分类与重复审计", "ROUTER及Dedrone产品料号的Axon母公司补查", "采购订单、BOM、原产地证和集团内部领料记录"],
+  },
+  {
+    entityId: 197,
+    finding: "暂未发现替代供应链",
+    confidence: "—",
+    summary: "暂未发现DZYNE Technologies在2025年10月9日列入后，通过其他企业或第三国继续自中国进口管控前同类货物。易迅三年精确名称11条记录已全部读取；列入后仅见日本AFRL发运的返运/工具类记录，未见中国来源。互联网公开提单库完整复现11条进口史，未发现列入后的中国直供或换道记录。",
+    checks: [
+      "DZYNE TECHNOLOGIES三年精确名称：11条，1页全部读取",
+      "列入后：2026-02-09及03-04日本AFRL记录；未见中国供应商或第三国同货路径",
+      "列入前：中国原产字段仅见2023年Pipistrel Sinus飞机；发货人为斯洛文尼亚Pipistrel，字段需单证复核",
+      "互联网贸易记录：ImportGenius复现11条、供应商、提单号、重量和日期",
+      "互联网历史中国记录：2020年深圳货代发运1千克酒精湿巾，与航空器/反无人机产品无关",
+      "互联网主体穿透：Ondas于2026-07-02收购DZYNE；公开资料未见收购后承接中国同类进口",
+    ],
+    nodes: [], evidence: [],
+    gaps: ["2023年Pipistrel飞机原产地证及宁波港路径", "2026年日本AFRL记录所附货物清单", "Ondas、High Point UAS及DZYNE子公司列入后的内部采购与BOM"],
+  },
+  {
+    entityId: 198,
+    finding: "暂未发现替代供应链",
+    confidence: "—",
+    summary: "暂未发现Elbit Systems of America在2025年10月9日列入后，通过关联企业或第三国继续自中国进口管控前同类货物。易迅三年精确名称12条已全部读取，均为美国夜视业务向越南、印度尼西亚出口；报关常用变体ELBIT SYSTEMS AMERICA INC叠加中国来源筛选为0条。互联网贸易库显示其美国主体的公开进口主要来自以色列、法国、巴基斯坦，未形成中国A腿。",
+    checks: [
+      "ELBIT SYSTEMS OF AMERICA三年精确名称：12条，1页全部读取",
+      "12条均为美国向越南/印度尼西亚出口夜视仪、像增强管，非自中国进口",
+      "ELBIT SYSTEMS AMERICA INC × 原产国China × 三年：0条",
+      "互联网贸易记录：Trademo显示公开进口来源以色列、法国、巴基斯坦",
+      "互联网提单样本：ImportKey复现2024—2026年IMI Systems以色列/希腊路径",
+      "互联网公司关系：SEC确认ESA为Elbit Systems Ltd.全资美国子公司并列示主要业务设施",
+    ],
+    nodes: [], evidence: [],
+    gaps: ["EFW、Kollsman、KMC、IEI等子公司逐一中国来源补查", "夜视系统关键元件BOM和供应商名录", "中国报关名称、最终收货地址及许可证记录"],
+  },
+  {
+    entityId: 199,
+    finding: "暂未发现替代供应链",
+    confidence: "C级 · 28分",
+    summary: "暂未发现Epirus, Inc.在2025年10月9日列入不可靠实体清单前直接自中国进口其高功率微波系统相关货物，也未发现列入后通过关联公司、其他收货企业或第三国继续取得中国同类货物的双腿证据。易迅三年美国目的国精确名称检索为0条；EPIRUS宽口径67条全部归属于希腊乳制品同名企业，M42与Fairfax关系主体亦为0条。",
+    checks: [
+      "EPIRUS, INC. × 目的国United States × 三年：0条",
+      "EPIRUS宽口径：67条；采购商仅Dodoni乳制品公司63条、EPIRUS USA LLC食品公司4条，均排除",
+      "M42 × 目的国United States × 三年：0条",
+      "FAIRFAX NATIONAL SECURITY SOLUTIONS × 目的国United States × 三年：0条",
+      "互联网贸易记录：精确法定名称及Torrance、Hawthorne、El Segundo三处官方地址均未命中目标公司公开海运提单",
+      "互联网关系穿透：M42少数股权、Fairfax国际销售及新加坡DSTA测试合作均非自中国采购证据",
+    ],
+    nodes: [], evidence: [],
+    gaps: ["美国公开提单与易迅对空运、快递及保密进口的覆盖有限", "GaN射频器件、功放模块、电源管理、天线与热管理部件的合同制造商及分销商名录", "采购订单、BOM、原产地证及中国出口端收货人反查"],
+  },
+  {
     entityId: 202,
     finding: "高可信延续链 · 未见换道",
     confidence: "B级 · 89分",
@@ -336,6 +400,27 @@ const screeningCases: ScreeningCase[] = [
       { category: "综合评分", title: "中资境外制造线索：65/100", detail: "不可靠实体身份15/15、FLIR关系20/20、中资股权15/20、列名后交易15/20、中国A腿及原产证据0/25。作为供应商监测线索保留，不进入90分双腿闭环。" },
     ],
     gaps: ["取得优利德越南33条货物的BOM、生产批次和中国上游采购单", "取得原始提单与最终收货仓库资料", "区分民用Extech产品与受管制物项并核验许可证状态"],
+  },
+  {
+    entityId: 204,
+    finding: "列入后直接进口 · 关联主体",
+    confidence: "C级 · 74分",
+    summary: "VSE Corporation列入不可靠实体清单后，其航空业务子公司VSE Aviation仍多次直接接收中国蚌埠供应商的航空轮胎。集团关系、中国供应端和列入后交易均有证据，但目前尚未补齐列入前同货直采基线，也未发现更换主体或第三国绕道，因此只作为直接进口核查线索入库。",
+    checks: ["VSE Corporation与VSE Aviation法定关系", "2025-10-09列入后中国原产记录", "Innova Rubber (Bengbu)供应商名称变体", "管控前航空轮胎基线与替代路径"],
+    nodes: [
+      { stage: "中国供应端", name: "Innova Rubber (Bengbu) Co., Ltd.", note: "安徽蚌埠轮胎供应商；多批航空轮胎", tone: "source", connection: "verified", linkLabel: "中国直供" },
+      { stage: "集团进口主体", name: "VSE Aviation, Inc.", note: "VSE Corporation航空业务子公司", tone: "alternate", connection: "verified", linkLabel: "列入后到货" },
+      { stage: "列名母公司", name: "VSE Corporation", note: "2025-10-09起列入不可靠实体清单", tone: "destination" },
+    ],
+    evidence: [
+      { category: "管控基线", title: "VSE Corporation自2025年10月9日起列入不可靠实体清单", detail: "不可靠实体清单工作机制公告2025年第10号列明VSE Corporation，并规定禁止所列实体从事与中国有关的进出口活动。", source: "中华人民共和国商务部", url: "https://www.mofcom.gov.cn/cms_files/filemanager/policySummary/viewcore_fa3dc71341524b8784bea825ef9da03e.html" },
+      { category: "关系证据", title: "VSE Aviation为VSE Corporation航空业务子公司", detail: "VSE官方公司介绍将VSE Aviation列为集团航空业务；VSE披露的子公司清单亦列示VSE Aviation, Inc.。", source: "VSE Corporation官方资料", url: "https://vsecorp.com/" },
+      { category: "易迅验证", title: "列入后至少6批中国航空轮胎到货", detail: "当前可见记录显示，2025-10-23、11-29及2026-01-03、01-23、03-17、04-08，VSE Aviation多次接收Innova Rubber (Bengbu)交付的AIRCRAFT TIRES；各批数量字段为74、59、55、108、108、108。", source: "易迅数据 · 三年口径 · 2026-08-27复核" },
+      { category: "路径判断", title: "当前是中国至美国直接供应，不是第三国绕道", detail: "可见记录的供应商位于中国蚌埠、收货人为VSE Aviation，目的国为美国、原产国字段为China；尚未出现中间国A/B双腿或列入后新承接企业。" },
+      { category: "证据边界", title: "未补齐列入前基线和物项适用性", detail: "现有页面结果不足以证明列入前由VSE Corporation或其他主体直接进口同类航空轮胎，也未取得许可证、原始提单和具体轮胎型号；不能据此作违法定性。" },
+      { category: "综合评分", title: "关联主体直采线索：74/100", detail: "不可靠实体身份15/15、集团关系20/20、中国来源20/25、列入后交易19/20、管控前基线与路径切换0/20。未达到90分双腿闭环阈值。" },
+    ],
+    gaps: ["完整读取VSE Aviation三年结果并去重", "补查2025-10-09前同型号航空轮胎直采基线", "取得提单、原产地证、许可证及轮胎型号并核定措施适用范围"],
   },
 ];
 const screeningScoreByEntity = new Map(
